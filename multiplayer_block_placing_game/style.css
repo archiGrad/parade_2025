@@ -1,0 +1,59 @@
+body { margin: 0; }
+canvas { display: block; }
+
+/* Logo container styles */
+#logo_container {
+font-size: 20px;
+font-family: Arial, sans-serif;
+font-weight: bold;
+position: absolute;
+bottom: 10px;
+left: 10px;
+display: flex;
+flex-direction: column;
+gap: 5px;
+align-items: flex-start;
+}
+#logo_title {
+font-size: 10px;
+background: black;
+font-weight: Bold;
+color: white;
+padding: 2px 5px;
+display: inline-block;
+width: fit-content;
+}
+#logo_names {
+font-size: 10px;
+color: white;
+background: black;
+padding: 2px 5px;
+display: block;
+}
+
+/* Student image container styles */
+#studentimage-container {
+position: absolute;
+left: 50%;
+transform: translateX(-50%);
+width: auto;
+text-align: center;
+bottom: 10px;
+}
+.studentimage {
+font-family: Arial, sans-serif;
+font-weight: Bold;
+font-size: 10px;
+color: white;
+word-wrap: break-word;
+overflow: hidden;
+display: inline-block;
+
+
+}
+
+
+
+
+
+

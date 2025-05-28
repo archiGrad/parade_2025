@@ -1,0 +1,3047 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Multiplayer Three.js Walking Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+
+
+<div id='logo_container'>
+  <span id='logo_title'>ArchiGrad</span>
+  <span id='logo_names'>Deniz Guvendi & Joris Putteneers</span>
+</div>
+
+
+<div id="studentimage-container">
+  <div class="studentimage"></div>
+</div>
+
+
+
+
+
+    <script type="module">
+       import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+       import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js";
+
+
+class MultiplayerGame {
+    constructor() {
+        // Scene setup
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: false });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio * 1); // Reduce render quality
+           
+        // Enable shadows
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        document.body.appendChild(this.renderer.domElement);
+
+        // After that, set up Stats.js:
+        this.setupPerformanceMonitor();
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        this.scene.add(ambientLight);
+
+        
+
+
+        const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x888888);
+        this.scene.add(gridHelper);
+
+        // Animation system
+        this.mixer = null;
+        this.clock = new THREE.Clock();
+        this.animations = {
+	    idle: null,
+	    walking: null,
+	    emote: null,
+	    angry: null,
+	    aim: null,      // New animation
+	    boxing: null,   // New animation
+	    clapping: null, // New animation
+	    dismiss: null,  // New animation 
+	    jump: null };
+        this.currentAction = null;
+        this.animationState = 'idle'; // Track current animation state
+
+        // Player representation (temporary)
+        const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const playerMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            side: THREE.DoubleSide 
+        });
+        this.localPlayer = new THREE.Mesh(playerGeometry, playerMaterial);
+        this.scene.add(this.localPlayer);
+        this.localPlayer.scale.set(3, 3, 3);
+
+        // Animation and movement state
+        this.isMoving = false;
+        
+        // Load player models with animations
+        this.loadPlayerModels();
+
+        // Player direction vector
+        this.playerDirection = new THREE.Vector3(0, 0, -1); // Initially facing forward
+
+// In the constructor - player scoreboard
+this.playerScores = {};
+this.scoreElement = document.createElement('div');
+this.scoreElement.style.position = 'fixed';
+this.scoreElement.style.right = '20px';
+this.scoreElement.style.bottom = '20px'; // Position at bottom
+this.scoreElement.style.color = 'white';
+this.scoreElement.style.padding = '10px';
+this.scoreElement.style.fontFamily = 'monospace';
+document.body.appendChild(this.scoreElement);
+this.lastPlayerUpdate = {};
+
+// Add to the constructor
+this.messageLogElement = document.createElement('div');
+this.messageLogElement.style.position = 'fixed';
+this.messageLogElement.style.left = '20px';
+this.messageLogElement.style.top = '30px';
+this.messageLogElement.style.width = '2000px';
+this.messageLogElement.style.color = 'white';
+this.messageLogElement.style.fontFamily = 'monospace';
+document.body.appendChild(this.messageLogElement);
+
+// Initialize the message array
+this.messages = [];
+
+
+
+// Add to the constructor - image scoreboard
+this.imageScores = {};
+this.imageScoreElement = document.createElement('div');
+this.imageScoreElement.style.position = 'fixed';
+this.imageScoreElement.style.top = '20px';
+this.imageScoreElement.style.right = '20px';
+this.imageScoreElement.style.color = 'white';
+this.imageScoreElement.style.padding = '10px';
+//this.imageScoreElement.style.fontFamily = 'Arial, sans-serif';
+this.imageScoreElement.style.fontFamily = 'monospace';
+document.body.appendChild(this.imageScoreElement);
+
+
+// Add to constructor for top images display
+this.topImagesContainer = document.createElement('div');
+this.topImagesContainer.style.position = 'fixed';
+this.topImagesContainer.style.right = '20px';
+this.topImagesContainer.style.bottom = '10px';
+this.topImagesContainer.style.display = 'flex';
+this.topImagesContainer.style.flexDirection = 'column';
+document.body.appendChild(this.topImagesContainer);
+
+this.gravity = 0.01;
+this.jumpForce = 0.2;
+this.jumpVelocity = 0;
+this.isJumping = false;
+this.playerHeight = 1.8; // Standing height of player
+this.playerRadius = 0.4; 
+
+
+
+
+
+
+//switch camera angles
+this.isTopView = false;
+this.normalCameraHeight = 5;    // Store original camera height
+this.normalCameraDistance = 12; // Store original camera distance
+this.topViewHeight = 100;        // Top view height
+this.topViewDistance = 10;   
+
+
+
+
+
+
+
+//raycaster stuff
+
+// Add this to the constructor of MultiplayerGame
+// Crosshair setup
+this.createCrosshair();
+
+// Ray casting for block placement
+this.raycaster = new THREE.Raycaster();
+this.maxPlacementDistance = 20; // Maximum distance for block placement
+
+// Block materials and storage
+this.blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+this.blockMaterials = [
+    new THREE.MeshBasicMaterial({ color: 0xff0000 }), // Red
+    new THREE.MeshBasicMaterial({ color: 0x00ff00 }), // Green
+    new THREE.MeshBasicMaterial({ color: 0x0000ff })  // Blue
+];
+this.blocks = []; 
+
+
+
+this.loadImageTextures();
+
+
+
+
+// Array for image elements
+this.topImageElements = [];
+// In constructor, add these properties
+this.spawnArea = {
+    minX: -20,
+    maxX: 20,
+    minZ: -20,
+    maxZ: 20
+};
+
+this.worldBounds = {
+    minX: -50, 
+    maxX: 50,
+    minZ: -50,
+    maxZ: 50
+};
+
+        // Camera settings
+// In the class constructor, update these camera settings
+this.cameraHeight = 10;    // Increased from 3 (previous change) but still less than original 10
+this.cameraDistance = 12; 
+        // Store obstacles for pickup detection
+        this.obstacles = [];
+
+        // Add random obstacles
+        //this.createRandomObstacles();
+
+        this.setupMessagePlacement();
+
+        this.trails = {};
+
+// Add this to the constructor (right after this.trails = {};)
+
+	this.lastIconPlacedTime = 0;
+	this.iconCooldownPeriod = 50; 
+
+
+        // Color palette for remote players
+        this.playerColors = [
+            0xff0000, // Red
+            0x00ff00, // Green
+            0xff00ff, // Magenta
+            0xffff00, // Yellow
+            0x00ffff, // Cyan
+            0xff8000, // Orange
+            0x8000ff  // Purple
+        ];
+
+
+
+	this.updateImageScoreboard();
+
+
+        // Other players tracking
+        this.remotePlayers = {};
+
+        // Player ID
+        this.playerId = null;
+
+	// Assign a color to the local player (will be set once playerId is received)
+	this.localPlayerColor = 0xFFFFFF; // Default white, will be updated
+
+        const spawnPos = this.getRandomSpawnPosition();
+        this.localPlayer.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+
+        // WebSocket setup
+        this.initWebSocket();
+
+        // Movement
+        this.setupMovement();
+
+        // Render loop
+        this.animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => this.onWindowResize());
+    }
+
+
+
+toggleCameraView() {
+    this.isTopView = !this.isTopView;
+    
+    if (this.isTopView) {
+        // Switch to top view
+        this.cameraHeight = this.topViewHeight;
+        this.cameraDistance = this.topViewDistance;
+    } else {
+        // Switch back to perspective view
+        this.cameraHeight = this.normalCameraHeight;
+        this.cameraDistance = this.normalCameraDistance;
+    }
+    
+    console.log(`Camera switched to ${this.isTopView ? 'top' : 'perspective'} view`);
+}
+
+truncateText(text, maxLength = 15) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '..';
+}
+
+loadImageTextures() {
+  const textureLoader = new THREE.TextureLoader();
+  this.blockTextures = [];
+  
+  // Use the same image filenames from your original code
+//  const imageFilenames = [
+//    '1137.png', '741.png', '711.png', '551.png', '344.png',
+//    '1493.png', '1435.png', '1295.png', '1287.png', '1271.png',
+//    '1214.png', '1170.png'
+//  ];
+//
+
+  const imageFilenames = [
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page1_img1.png",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page2_img4.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page2_img8.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page4_img1.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img11.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img12.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img18.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img1.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img23.png",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img24.png",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img2.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img5.jpeg",
+		"Climatic Ornament workshop report - Naphol [Pound] Chanakul_page5_img7.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page1_img7.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page2_img2.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img10.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img12.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img13.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img1.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img2.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img3.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img4.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img6.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img7.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img8.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page3_img9.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img10.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img11.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img12.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img1.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img2.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img4.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img5.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img6.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img8.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page4_img9.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img10.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img11.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img12.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img1.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img2.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img3.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img4.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img5.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img6.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img7.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img8.jpeg",
+		"DecolonizingSymmetry_Chayutpon Jirajaturapak - Chayutpon Jirajaturapak_page5_img9.jpeg",
+		"DEX_ToolsOfANewCraft (1).jpeg",
+		"DEX_ToolsOfANewCraft (2).jpeg",
+		"DEX_ToolsOfANewCraft (3).jpeg",
+		"DEX_ToolsOfANewCraft (4).jpeg",
+		"DEX_ToolsOfANewCraft (5).jpeg",
+		"DEX_ToolsOfANewCraft (6).jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page1_img1.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page2_img1.png",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page2_img2.png",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page2_img4.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page2_img5.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page2_img6.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page3_img5.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page3_img6.png",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img1.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img2.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img3.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img4.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img5.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page4_img6.jpeg",
+		"FluidTectonics_AkarawinPreedawiphat - Akarawin Preedawiphat_page5_img2.jpeg",
+		"FluidTectonics_PatrLeelarasamee - Patr Leelarasamee_page1_img1.jpeg",
+		"FluidTectonics_PatrLeelarasamee - Patr Leelarasamee_page3_img3.jpeg",
+		"FluidTectonics_PatrLeelarasamee - Patr Leelarasamee_page3_img5.jpeg",
+		"FluidTectonics_PatrLeelarasamee - Patr Leelarasamee_page4_img1.jpeg",
+		"FluidTectonics_PatrLeelarasamee - Patr Leelarasamee_page4_img3.jpeg",
+		"FluidTectonics_PunnaphatMeesuk - Punnaphat [I-tim] Meesuk_page1_img1.jpeg",
+		"FluidTectonics_PunnaphatMeesuk - Punnaphat [I-tim] Meesuk_page2_img1.jpeg",
+		"FluidTectonics_PunnaphatMeesuk - Punnaphat [I-tim] Meesuk_page2_img2.jpeg",
+		"hybrid58915_page1_img12.png",
+		"hybrid58915_page1_img2.png",
+		"list.txt",
+		"MultiAuthorHybrid_KritAhunai - Krit [Krit] Ahunai_page1_img1.jpeg",
+		"MultiAuthorHybrid_KritAhunai - Krit [Krit] Ahunai_page2_img1.jpeg",
+		"MultiAuthorHybrid_KritAhunai - Krit [Krit] Ahunai_page2_img5.jpeg",
+		"MultiAuthorHybrid_KritAhunai - Krit [Krit] Ahunai_page3_img1.jpeg",
+		"MultiAuthorHybrid_KritAhunai - Krit [Krit] Ahunai_page3_img4.jpeg",
+		"SensorialHybrids_KullanitSinchai - Kullanit Sinchai_page1_img1.jpeg",
+		"SensorialHybrids_KullanitSinchai - Kullanit Sinchai_page2_img3.jpeg",
+		"SensorialHybrids_KullanitSinchai - Kullanit Sinchai_page2_img4.jpeg",
+		"SensorialHybrids_KullanitSinchai - Kullanit Sinchai_page3_img2.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page2_img1.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page2_img2.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page2_img3.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page2_img4.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page2_img5.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page3_img2.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page3_img3.jpeg",
+		"StateOfRepair_ChawanyaPridaphatrakun - Chawanya Pridaphatrakun_page3_img4.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page1_img1.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page2_img1.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page2_img4.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page2_img6.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page3_img1.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page3_img3.jpeg",
+		"StateOfRepair_ChomdaoWongthawatchai - Chomdao Wongthawatchai_page3_img4.jpeg",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page1_img1.jpeg",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page2_img3.png",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page2_img6.jpeg",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page3_img1.jpeg",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page3_img2.jpeg",
+		"StateofRepair-HybridObjects&3DPrintedSeams_NadaRuengchinda - Nada [Ja] Ruengchinda(1)_page3_img4.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page1_img1.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page2_img1.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page2_img2.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page2_img4.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page2_img5.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page2_img6.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page3_img1.jpeg",
+		"StateofRepair_PawinThanatit - Pawin Thanatit_page3_img3.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page1_img1.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page2_img1.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page2_img2.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page2_img3.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page2_img4.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page2_img5.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page3_img1.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page3_img4.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page3_img5.jpeg",
+		"StateofRepair_PichaRiyasan - Picha Riyasan_page3_img8.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page1_img1.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img1.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img2.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img3.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img4.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img5.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page2_img6.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page3_img2.jpeg",
+		"StateofRepair_PloyCatalinaPloysongsang - Ploy Catalina [Ploy] Ploysongsang_page3_img4.jpeg",
+		"StateOfRepair_PruekHongboontai - Pruek “Chutae” Hongboontai_page1_img1.jpeg",
+		"StateOfRepair_PruekHongboontai - Pruek “Chutae” Hongboontai_page2_img2.jpeg",
+		"StateOfRepair_PruekHongboontai - Pruek “Chutae” Hongboontai_page2_img6.jpeg",
+		"StateOfRepair_PruekHongboontai - Pruek “Chutae” Hongboontai_page3_img1.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page1_img1.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page2_img2.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page2_img3.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page2_img5.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page3_img2.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page3_img5.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page3_img6.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page4_img13.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page4_img2.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page4_img3.jpeg",
+		"StateofRepair_SuppasilpCharoenkraikamol - Suppasilp Charoenkraikamol_page4_img7.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page2_img3.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page2_img4.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page2_img5.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page2_img6.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page2_img7.jpeg",
+		"StateOfRepair_TanakornAnongpornyoskul - Tanakorn [Ice] Anongpornyoskul_page3_img1.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page1_img1.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img1.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img2.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img3.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img4.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img5.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page2_img6.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page3_img2.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page3_img5.jpeg",
+		"Supernatural Sonorous Territories_Jirapat Taweesin - Jirapat Taweesin_page3_img6.jpeg"
+
+  ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  // Load each texture
+  imageFilenames.forEach(filename => {
+    const texture = textureLoader.load(`/images/${filename}`);
+    texture.userData = { imageId: filename.replace('.png', '') };
+    this.blockTextures.push(texture);
+  });
+  
+  console.log(`Loaded ${this.blockTextures.length} block textures`);
+}
+
+createCrosshair() {
+    // Create a simple crosshair element
+    this.crosshair = document.createElement('div');
+    this.crosshair.style.position = 'absolute';
+    this.crosshair.style.top = '50%';
+    this.crosshair.style.left = '50%';
+    this.crosshair.style.transform = 'translate(-50%, -50%)';
+    this.crosshair.style.width = '20px';
+    this.crosshair.style.height = '20px';
+    this.crosshair.style.color = 'white';
+    this.crosshair.style.fontSize = '20px';
+    this.crosshair.style.userSelect = 'none';
+    this.crosshair.style.pointerEvents = 'none'; // Don't interfere with clicks
+    this.crosshair.innerHTML = '+';
+    document.body.appendChild(this.crosshair);
+
+
+
+
+
+
+
+
+// Add these to your MultiplayerGame constructor
+this.raycaster = new THREE.Raycaster();
+this.blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+this.blockMaterials = [
+    new THREE.MeshBasicMaterial({ color: 0xff0000 }), // Red
+    new THREE.MeshBasicMaterial({ color: 0x00ff00 }), // Green
+    new THREE.MeshBasicMaterial({ color: 0x0000ff }), // Blue
+];
+this.blocks = []; // Keep track of placed blocks
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+// Step 3: Update remote block handling to use textures
+handleRemoteBlockPlacement(blockData) {
+  console.log("Received remote block:", blockData);
+  
+  const position = new THREE.Vector3(
+    blockData.position.x,
+    blockData.position.y,
+    blockData.position.z
+  );
+  
+  let blockMaterial;
+  
+  if (blockData.textureId) {
+    console.log("Looking for texture ID:", blockData.textureId);
+    
+    // Find matching texture by ID
+    const textureIndex = this.blockTextures.findIndex(tex => 
+      tex.userData && tex.userData.imageId === blockData.textureId
+    );
+    
+    if (textureIndex >= 0) {
+      console.log("Found texture at index:", textureIndex);
+      const texture = this.blockTextures[textureIndex];
+      blockMaterial = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        side: THREE.DoubleSide
+      });
+    } else {
+      console.warn("No matching texture found for ID:", blockData.textureId);
+      // Fallback to first texture
+      blockMaterial = new THREE.MeshBasicMaterial({ 
+        map: this.blockTextures[0],
+        side: THREE.DoubleSide
+      });
+    }
+  } else {
+    console.warn("No textureId in block data, using color material");
+    // Fallback to color material
+    blockMaterial = this.blockMaterials[0]; // Red
+  }
+  
+  const block = new THREE.Mesh(this.blockGeometry, blockMaterial);
+  block.position.copy(position);
+  
+  if (blockData.textureId) {
+    block.userData = { 
+      imageId: blockData.textureId,
+      isScoreBlock: true
+    };
+  }
+  
+  this.scene.add(block);
+  this.blocks.push(block);
+}
+
+checkProximityToBlocks(position, playerId) {
+  const proximityDistance = 2.0; // Slightly larger than for flat images
+  
+  for (const block of this.blocks) {
+    // Skip blocks without imageId (non-scoring blocks)
+    if (!block.userData || !block.userData.isScoreBlock) continue;
+    
+    const distance = position.distanceTo(block.position);
+    
+    if (distance < proximityDistance) {
+      // Get image ID from block userData
+      const imageId = block.userData.imageId;
+      
+      // Track the score
+      if (!this.imageScores[imageId]) {
+        this.imageScores[imageId] = 0;
+      }
+      this.imageScores[imageId] += 1;
+      
+      // Update the image scoreboard
+      this.updateImageScoreboard();
+      
+      // Tell other players about the score
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({
+          type: 'image_score_update',
+          imageScore: {
+            id: imageId,
+            score: this.imageScores[imageId]
+          }
+        }));
+      }
+      
+      // Award player point
+      this.addScorePoint(playerId);
+      
+      // Send score update to server for the player
+      if (this.socket && this.socket.readyState === WebSocket.OPEN && playerId === this.playerId) {
+        this.socket.send(JSON.stringify({
+          type: 'score_update',
+          score: {
+            id: playerId,
+            score: this.playerScores[playerId]
+          }
+        }));
+      }
+      
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+
+
+// In createAndSendBlock function, make sure textureId is explicitly being passed
+createAndSendBlock(position) {
+  // Choose random texture
+  const textureIndex = Math.floor(Math.random() * this.blockTextures.length);
+  const texture = this.blockTextures[textureIndex];
+  const textureId = texture.userData.imageId;
+  
+  console.log("Creating block with texture ID:", textureId);
+  
+  // Create material with the texture
+  const blockMaterial = new THREE.MeshBasicMaterial({ 
+    map: texture,
+    side: THREE.DoubleSide
+  });
+  
+  // Create the block mesh
+  const block = new THREE.Mesh(this.blockGeometry, blockMaterial);
+  block.position.copy(position);
+  
+  // Store the image ID with the block for scoring
+  block.userData = { 
+    imageId: textureId,
+    isScoreBlock: true
+  };
+  
+  // Add to scene and blocks array
+  this.scene.add(block);
+  this.blocks.push(block);
+  
+  console.log(`Block placed at: ${position.x}, ${position.y}, ${position.z} with texture ${textureId}`);
+  
+  // Send block data to other clients with explicit textureId
+  if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    const blockData = {
+      position: {
+        x: position.x,
+        y: position.y,
+        z: position.z
+      },
+      textureId: textureId // Make sure this is included
+    };
+    
+    console.log("Sending block data:", blockData);
+    
+    this.socket.send(JSON.stringify({
+      type: 'place_block',
+      block: blockData
+    }));
+  }
+}
+// Collision detection helper
+checkBlockCollision(position, isRemotePlayer = false) {
+    // Create a player bounding box for collision detection
+    const playerBottom = position.clone();
+    const playerTop = position.clone();
+    playerTop.y += this.playerHeight;
+    
+    // Check collision with all blocks
+    for (const block of this.blocks) {
+        // Simple AABB collision check
+        const blockMin = block.position.clone().sub(new THREE.Vector3(0.5, 0.5, 0.5));
+        const blockMax = block.position.clone().add(new THREE.Vector3(0.5, 0.5, 0.5));
+        
+        // Horizontal collision (only check if player is at same height as block)
+        if (position.y < blockMax.y && position.y + this.playerHeight > blockMin.y) {
+            // Check X-Z collision using player radius
+            const closestX = Math.max(blockMin.x, Math.min(position.x, blockMax.x));
+            const closestZ = Math.max(blockMin.z, Math.min(position.z, blockMax.z));
+            
+            const distanceX = position.x - closestX;
+            const distanceZ = position.z - closestZ;
+            const distanceSquared = distanceX * distanceX + distanceZ * distanceZ;
+            
+            if (distanceSquared < this.playerRadius * this.playerRadius) {
+                // Collision detected - push player away
+                if (!isRemotePlayer) {
+                    // Only handle collision resolution for local player
+                    const pushDirection = new THREE.Vector3(distanceX, 0, distanceZ).normalize();
+                    
+                    // Calculate overlap and push out
+                    const overlap = this.playerRadius - Math.sqrt(distanceSquared);
+                    position.x += pushDirection.x * overlap * 1.01; // Slight extra to prevent sticking
+                    position.z += pushDirection.z * overlap * 1.01;
+                }
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Check if player is standing on a block and handle vertical movement
+checkBlockSupport(position) {
+    // Only check if we're close to the ground or falling
+    if (position.y <= 0.001) {
+        // Already on main ground
+        position.y = 0;
+        return true;
+    }
+    
+    // Check blocks directly under player
+    for (const block of this.blocks) {
+        const blockMin = block.position.clone().sub(new THREE.Vector3(0.5, 0.5, 0.5));
+        const blockMax = block.position.clone().add(new THREE.Vector3(0.5, 0.5, 0.5));
+        
+        // Check if player is directly above this block
+        if (position.x >= blockMin.x - this.playerRadius && 
+            position.x <= blockMax.x + this.playerRadius &&
+            position.z >= blockMin.z - this.playerRadius && 
+            position.z <= blockMax.z + this.playerRadius) {
+            
+            // Check if player's feet are at or slightly above block top
+            const feetY = position.y;
+            const blockTopY = blockMax.y;
+            
+            const distanceToBlockTop = feetY - blockTopY;
+            
+            // If we're falling onto the block or just above it
+            if (distanceToBlockTop <= 0.1 && distanceToBlockTop >= -0.1) {
+                position.y = blockTopY;
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+placeBlock() {
+    console.log("Attempting to place block");
+    
+    // Cast ray from camera through center of screen (crosshair)
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+    const ray = this.raycaster.ray;
+    
+    // Check for intersections with existing blocks
+    const blockIntersections = this.raycaster.intersectObjects(this.blocks, false);
+    console.log("Intersections found:", blockIntersections.length);
+    
+    // Determine placement position
+    let blockPosition = null;
+    
+    // Case 1: Ray hits an existing block
+    if (blockIntersections.length > 0 && blockIntersections[0].distance <= this.maxPlacementDistance) {
+        console.log("Hit existing block at distance:", blockIntersections[0].distance);
+        const intersection = blockIntersections[0];
+        
+        // Get face normal in world space
+        const normal = intersection.face.normal.clone();
+        normal.transformDirection(intersection.object.matrixWorld);
+        
+        // Snap normal to major axis to ensure clean placement
+        if (Math.abs(normal.x) > Math.abs(normal.y) && Math.abs(normal.x) > Math.abs(normal.z)) {
+            normal.set(Math.sign(normal.x), 0, 0);
+        } else if (Math.abs(normal.y) > Math.abs(normal.x) && Math.abs(normal.y) > Math.abs(normal.z)) {
+            normal.set(0, Math.sign(normal.y), 0);
+        } else {
+            normal.set(0, 0, Math.sign(normal.z));
+        }
+        
+        // Place block adjacent to hit face
+        blockPosition = intersection.object.position.clone().add(normal);
+        console.log("Calculated position:", blockPosition);
+    } 
+    // Case 2: Ray doesn't hit a block, check for ground plane
+    else {
+        console.log("No block intersection, checking ground plane");
+        
+        // Create a ground plane at y=0
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const groundTarget = new THREE.Vector3();
+        
+        // Check if ray intersects ground plane
+        const intersectsGround = ray.intersectPlane(groundPlane, groundTarget);
+        
+        if (intersectsGround) {
+            // Calculate distance to ground intersection
+            const distanceToGround = ray.origin.distanceTo(groundTarget);
+            console.log("Distance to ground plane:", distanceToGround);
+            
+            // Place block if ground is within max distance
+            if (distanceToGround <= this.maxPlacementDistance) {
+                console.log("Ground intersection point:", groundTarget);
+                
+                // Snap to grid cell centers (x.5, y.5, z.5)
+                blockPosition = new THREE.Vector3(
+                    Math.floor(groundTarget.x) + 0.5,
+                    0.5,  // Position at y=0.5 (center of block on ground)
+                    Math.floor(groundTarget.z) + 0.5
+                );
+                console.log("Snapped block position:", blockPosition);
+            } else {
+                console.log("Ground intersection too far:", distanceToGround);
+            }
+        } else if (ray.direction.y >= 0) {
+            // Ray is pointing upward or parallel to ground, can't hit ground
+            console.log("Ray pointing upward, can't hit ground");
+            
+            // Optional: Place block at max distance in ray direction
+            const farPosition = ray.origin.clone().add(
+                ray.direction.clone().normalize().multiplyScalar(this.maxPlacementDistance)
+            );
+            
+            // Snap to grid
+            blockPosition = new THREE.Vector3(
+                Math.floor(farPosition.x) + 0.5,
+                Math.floor(farPosition.y) + 0.5,
+                Math.floor(farPosition.z) + 0.5
+            );
+            console.log("Placing at max distance:", blockPosition);
+        }
+    }
+    
+    // Check if we can place the block (not intersecting with any player)
+    if (blockPosition) {
+        // Check local player collision
+        const localPlayerBounds = {
+            min: this.localPlayer.position.clone().sub(new THREE.Vector3(this.playerRadius, 0, this.playerRadius)),
+            max: this.localPlayer.position.clone().add(new THREE.Vector3(this.playerRadius, this.playerHeight, this.playerRadius))
+        };
+        
+        // Simple AABB check between block and player
+        const blockBounds = {
+            min: blockPosition.clone().sub(new THREE.Vector3(0.5, 0.5, 0.5)),
+            max: blockPosition.clone().add(new THREE.Vector3(0.5, 0.5, 0.5))
+        };
+        
+        // Check if block would intersect with local player
+        const intersectsPlayer = (
+            localPlayerBounds.min.x <= blockBounds.max.x &&
+            localPlayerBounds.max.x >= blockBounds.min.x &&
+            localPlayerBounds.min.y <= blockBounds.max.y &&
+            localPlayerBounds.max.y >= blockBounds.min.y &&
+            localPlayerBounds.min.z <= blockBounds.max.z &&
+            localPlayerBounds.max.z >= blockBounds.min.z
+        );
+        
+        // Also check for remote players
+        let intersectsRemotePlayer = false;
+        for (const playerId in this.remotePlayers) {
+            const remotePlayer = this.remotePlayers[playerId];
+            if (!remotePlayer.position) continue;
+            
+            const remotePlayerBounds = {
+                min: remotePlayer.position.clone().sub(new THREE.Vector3(this.playerRadius, 0, this.playerRadius)),
+                max: remotePlayer.position.clone().add(new THREE.Vector3(this.playerRadius, this.playerHeight, this.playerRadius))
+            };
+            
+            if (
+                remotePlayerBounds.min.x <= blockBounds.max.x &&
+                remotePlayerBounds.max.x >= blockBounds.min.x &&
+                remotePlayerBounds.min.y <= blockBounds.max.y &&
+                remotePlayerBounds.max.y >= blockBounds.min.y &&
+                remotePlayerBounds.min.z <= blockBounds.max.z &&
+                remotePlayerBounds.max.z >= blockBounds.min.z
+            ) {
+                intersectsRemotePlayer = true;
+                break;
+            }
+        }
+        
+        if (!intersectsPlayer && !intersectsRemotePlayer) {
+            // Create the block if no player collision
+            this.createAndSendBlock(blockPosition);
+        } else {
+            console.log("Can't place block - would intersect with a player");
+        }
+    } else {
+        console.log("No valid block position found");
+    }
+}
+
+
+
+
+// Add these methods to your class
+addMessage(message) {
+    // Add new message to the beginning of the array
+    this.messages.unshift(message);
+    
+    // Keep only the latest 10 messages
+    if (this.messages.length > 10) {
+        this.messages.pop();
+    }
+    
+    // Update the message log display
+    this.updateMessageLog();
+}
+
+
+updateMessageLog() {
+    let logHTML = '<div>Recent Activity</div>';
+    
+    for (const message of this.messages) {
+        const shortId = message.playerId === this.playerId ? 
+            'You' : `Player ${message.playerId.slice(0,8)}`;
+        
+        // Truncate block ID if present
+        const blockId = message.blockId && message.blockId !== "no block" ? 
+            this.truncateText(message.blockId, 15) : message.blockId;
+            
+        const targetText = blockId && blockId !== "no block" ? 
+            ` on block ${blockId}` : "";
+        
+        logHTML += `<div>[${message.timestamp}] ${shortId} placed ${message.emoji}${targetText}</div>`;
+    }
+    
+    this.messageLogElement.innerHTML = logHTML;
+}
+
+
+updateLocalPlayerColor(color) {
+    // Update head sphere color
+    if (this.headSphere) {
+        this.headSphere.material.color.setHex(color);
+    }
+    
+    // Update skeleton helper color
+    if (this.skeletonHelper) {
+        this.skeletonHelper.material.color.setHex(color);
+    }
+    
+    // Update any trail for local player
+    if (this.trails[this.playerId]) {
+        this.trails[this.playerId].material.color.setHex(color);
+    }
+}
+
+    getRandomSpawnPosition() {
+    return {
+        x: Math.random() * (this.spawnArea.maxX - this.spawnArea.minX) + this.spawnArea.minX,
+        y: 0, // Ground level
+        z: Math.random() * (this.spawnArea.maxZ - this.spawnArea.minZ) + this.spawnArea.minZ
+    };
+}
+
+
+
+
+updateImageScoreboard() {
+    // Skip updates if not enough time has passed (update at most every 500ms)
+//    if (this.lastScoreboardUpdate && Date.now() - this.lastScoreboardUpdate < 500) {
+//        this.pendingScoreboardUpdate = true;
+//        return;
+//    }
+    
+    this.lastScoreboardUpdate = Date.now();
+    this.pendingScoreboardUpdate = false;
+    
+    if (!this.scoreTable) {
+        console.error("Score table not found - reinitializing");
+        this.scoreboardInitialized = false;
+        // Continue with initialization...
+    }    
+
+    if (!this.scoreboardInitialized) {
+        let tableHTML = '<table style="width:100%; border-collapse:collapse; color:white;">';
+        tableHTML += '<tr style="border-bottom:1px solid #555;"><th style="text-align:left; color:white;">Image</th><th style="text-align:right; color:white;">Score</th></tr>';
+        tableHTML += '</table>';
+        
+        this.imageScoreElement.innerHTML = tableHTML;
+        this.scoreTable = this.imageScoreElement.querySelector('table');
+        this.scoreboardInitialized = true;
+    }
+
+    // Sort images by score
+    const sortedImages = Object.entries(this.imageScores)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10); // Get top 10
+    
+    // Clear existing rows except header
+    const tableRows = this.scoreTable.querySelectorAll('tr:not(:first-child)');
+    tableRows.forEach(row => row.remove());
+    
+    // Add rows for each image
+    sortedImages.forEach((entry, i) => {
+        const [imageId, score] = entry;
+
+
+	const truncatedId = this.truncateText(imageId, 15);
+        
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid #ddd';
+        
+        // Add crown only to the first item
+        const nameCell = document.createElement('td');
+        nameCell.style.padding = '4px 0';
+        nameCell.textContent = i === 0 ? `👑 ${truncatedId}` : truncatedId; 
+
+
+        const scoreCell = document.createElement('td');
+        scoreCell.style.textAlign = 'right';
+        scoreCell.style.padding = '4px 0';
+        scoreCell.textContent = score;
+        
+        row.appendChild(nameCell);
+        row.appendChild(scoreCell);
+        this.scoreTable.appendChild(row);
+    });
+
+    // After updating the image scoreboard, position the player scoreboard below it
+    const imageScoreRect = this.imageScoreElement.getBoundingClientRect();
+    this.scoreElement.style.top = (imageScoreRect.bottom + 10) + 'px';
+    
+    // Clear previous images
+    this.topImagesContainer.innerHTML = '';
+    this.topImageElements = [];
+    
+    // Define medals for top 3
+    const medals = ['🥇', '🥈', '🥉'];
+    
+    // Add the top 3 images (or fewer if not enough data)
+    const numImagesToShow = Math.min(3, sortedImages.length);
+    
+    for (let i = 0; i < numImagesToShow; i++) {
+        const imageId = sortedImages[i][0];
+        const truncatedId = this.truncateText(imageId, 15);
+
+        
+        // Create a container for text + image
+        const rowContainer = document.createElement('div');
+        rowContainer.style.display = 'flex';
+        rowContainer.style.alignItems = 'center';
+        // Add image name text with medal
+        const nameText = document.createElement('div');
+        
+    nameText.textContent = `${truncatedId}  ${medals[i]}`; // Truncated ID with medal
+
+nameText.style.color = 'white';
+        nameText.style.fontFamily = 'monospace';
+        nameText.style.fontSize = '12px';
+        nameText.style.marginRight = '20px';
+        nameText.style.textAlign = 'right';
+        nameText.style.width = '500px';
+        
+        // Image container
+        const imgContainer = document.createElement('div');
+        imgContainer.style.width = '80px';
+        imgContainer.style.height = '80px';
+        imgContainer.style.position = 'relative';
+        
+        const img = document.createElement('img');
+        img.src = `/images/${imageId}`;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        
+        imgContainer.appendChild(img);
+        
+        // Add text and image to row container
+        rowContainer.appendChild(nameText);
+        rowContainer.appendChild(imgContainer);
+        
+        // Add row to main container
+        this.topImagesContainer.appendChild(rowContainer);
+        
+        this.topImageElements.push(img);
+    }
+}
+
+setupPerformanceMonitor() {
+    // Create Stats.js instance
+    this.stats = new Stats();
+    
+    // Create container for multiple stat panels
+    this.statsContainer = document.createElement('div');
+    this.statsContainer.style.position = 'absolute';
+    this.statsContainer.style.top = '0px';
+    this.statsContainer.style.left = '0px';
+    document.body.appendChild(this.statsContainer);
+    
+    // FPS panel (panel 0)
+    this.fpsStats = new Stats();
+    this.fpsStats.showPanel(0); // 0: fps
+    this.fpsStats.dom.style.cssText = 'position:relative;margin-bottom:5px;';
+    this.statsContainer.appendChild(this.fpsStats.dom);
+    
+    // MS panel (panel 1)
+    this.msStats = new Stats();
+    this.msStats.showPanel(1); // 1: ms
+    this.msStats.dom.style.cssText = 'position:relative;margin-bottom:5px;';
+    this.statsContainer.appendChild(this.msStats.dom);
+    
+    // Memory panel (panel 2) - only works in Chrome
+    this.memStats = new Stats();
+    this.memStats.showPanel(2); // 2: mb
+    this.memStats.dom.style.cssText = 'position:relative;';
+    this.statsContainer.appendChild(this.memStats.dom);
+}
+
+   loadPlayerModels() {
+    const loader = new GLTFLoader();
+    
+    // First load the model with idle animation
+    loader.load('idle.glb', (gltf) => {
+        // Setup the base model
+        this.scene.remove(this.localPlayer);
+        
+        const oldPosition = this.localPlayer.position.clone();
+        this.localPlayer = gltf.scene;
+        this.localPlayer.position.copy(oldPosition);
+        this.scene.add(this.localPlayer);
+        
+        // Setup animation mixer
+        this.mixer = new THREE.AnimationMixer(this.localPlayer);
+        
+        // Store the idle animation
+        if (gltf.animations && gltf.animations.length > 0) {
+            this.animations.idle = this.mixer.clipAction(gltf.animations[0]);
+            console.log('Loaded idle animation');
+        }
+        
+        // Create skeleton helper
+        this.createSkeletonHelper();
+        
+        // Add sphere to head
+        this.addHeadSphere();
+        
+        // Start with idle animation
+        this.setAnimation('idle');
+        
+        // Now load walking animation
+        loader.load('walking.glb', (walkGltf) => {
+            if (walkGltf.animations && walkGltf.animations.length > 0) {
+                this.animations.walking = this.mixer.clipAction(walkGltf.animations[0]);
+                console.log('Loaded walking animation');
+            }
+            
+            // Load emote animation
+            loader.load('emote.glb', (emoteGltf) => {
+                if (emoteGltf.animations && emoteGltf.animations.length > 0) {
+                    this.animations.emote = this.mixer.clipAction(emoteGltf.animations[0]);
+                    console.log('Loaded emote animation');
+                }
+
+                // Load angry animation
+                loader.load('angry.glb', (angryGltf) => {
+                    if (angryGltf.animations && angryGltf.animations.length > 0) {
+                        this.animations.angry = this.mixer.clipAction(angryGltf.animations[0]);
+                        console.log('Loaded angry animation');
+                    }
+                    
+                    // Load aim animation
+                    loader.load('aim.glb', (aimGltf) => {
+                        if (aimGltf.animations && aimGltf.animations.length > 0) {
+                            this.animations.aim = this.mixer.clipAction(aimGltf.animations[0]);
+                            console.log('Loaded aim animation');
+                        }
+                        
+                        // Load boxing animation
+                        loader.load('boxing.glb', (boxingGltf) => {
+                            if (boxingGltf.animations && boxingGltf.animations.length > 0) {
+                                this.animations.boxing = this.mixer.clipAction(boxingGltf.animations[0]);
+                                console.log('Loaded boxing animation');
+                            }
+                            
+                            // Load clapping animation
+                            loader.load('clapping.glb', (clappingGltf) => {
+                                if (clappingGltf.animations && clappingGltf.animations.length > 0) {
+                                    this.animations.clapping = this.mixer.clipAction(clappingGltf.animations[0]);
+                                    console.log('Loaded clapping animation');
+                                }
+                                
+                                // Load dismiss animation
+                                loader.load('dismiss.glb', (dismissGltf) => {
+                                    if (dismissGltf.animations && dismissGltf.animations.length > 0) {
+                                        this.animations.dismiss = this.mixer.clipAction(dismissGltf.animations[0]);
+                                        console.log('Loaded dismiss animation');
+                                    }
+                                    
+                                    // Load jump animation
+                                    loader.load('jump2.glb', (jumpGltf) => {
+                                        if (jumpGltf.animations && jumpGltf.animations.length > 0) {
+                                            this.animations.jump = this.mixer.clipAction(jumpGltf.animations[0]);
+                                            console.log('Loaded jump animation');
+                                        }
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+} 
+    
+    // Add a sphere to the character's head
+    addHeadSphere() {
+        // Create a larger white sphere
+        const sphereGeometry = new THREE.SphereGeometry(20, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+             color: this.localPlayerColor || 0xFFFFFF,
+		transparent: true,
+            opacity: 1
+        });
+        this.headSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        
+        // Try to find the head bone
+        let headBone = null;
+        
+        this.localPlayer.traverse((object) => {
+            // Look for a bone that might be the head
+            if (object.isBone) {
+                const name = object.name.toLowerCase();
+                if (name.includes('head') || name.includes('skull') || name.includes('face')) {
+                    headBone = object;
+                    console.log('Found head bone:', object.name);
+                }
+            }
+        });
+        
+        // If we found a head bone, attach the sphere to it
+            headBone.add(this.headSphere);
+            console.log('Added sphere to head bone');
+    }
+
+    createSkeletonHelper() {
+        // Set up skeleton helper
+        this.skeletonHelper = null;
+        
+        this.localPlayer.traverse((child) => {
+            if (child.isMesh) {
+                // Create skeleton helper
+                if (child.skeleton && !this.skeletonHelper) {
+                    this.skeletonHelper = new THREE.SkeletonHelper(this.localPlayer);
+                    this.skeletonHelper.material.linewidth = 6;
+                    this.skeletonHelper.material.depthTest = true; // Enable depth testing
+                    this.skeletonHelper.material.opacity = 1; // Make it slightly transparent
+                    this.skeletonHelper.material.transparent = true;
+
+ // Replace the material with a new LineBasicMaterial for consistent coloring
+    this.skeletonHelper.material = new THREE.LineBasicMaterial({
+        color: this.localPlayerColor || 0xFFFFFF,
+        linewidth: 6,
+        depthTest: true,
+        transparent: true,
+        opacity: 1
+    });
+
+
+                    this.scene.add(this.skeletonHelper);
+                    console.log("Added skeleton helper");
+                }
+                
+                // Hide the mesh but keep for animation
+                child.visible = false;
+            }
+        });
+        
+    }
+
+    // Set animation
+// Set animation
+setAnimation(name, duration = 0.1) {
+    // Skip if animation doesn't exist or mixer isn't ready
+    if (!this.animations[name] || !this.mixer) {
+        console.log(`Animation ${name} not available yet`);
+        return;
+    }
+    
+    // Skip if already playing this animation
+    if (this.animationState === name) {
+        return;
+    }
+    
+    console.log(`Changing animation to: ${name} (from ${this.animationState})`);
+    this.animationState = name;
+    
+    const newAction = this.animations[name];
+    const oldAction = this.currentAction;
+    
+    // Handle one-shot animations versus looping animations
+    const oneShots = ['emote', 'angry', 'aim', 'boxing', 'clapping', 'dismiss', 'jump2'];
+    if (oneShots.includes(name)) {
+        newAction.setLoop(THREE.LoopOnce);
+        newAction.clampWhenFinished = true;
+    } else {
+        newAction.setLoop(THREE.LoopRepeat);
+    }
+    
+    // Crossfade to the new animation
+    newAction.reset();
+    newAction.setEffectiveWeight(1);
+    newAction.fadeIn(duration);
+    newAction.play();
+    
+    // Fade out old animation if it exists
+    if (oldAction) {
+        oldAction.fadeOut(duration);
+    }
+    
+    this.currentAction = newAction;
+    
+    // Send immediate player update to inform others of animation change
+    this.sendPlayerUpdate();
+    
+    // For one-shot animations, return to previous state when finished
+    if (oneShots.includes(name)) {
+        const animLength = this.animations[name]._clip.duration * 10000; // Convert to milliseconds
+        setTimeout(() => {
+            if (this.isMoving) {
+                this.setAnimation('walking');
+            } else {
+                this.setAnimation('idle');
+            }
+        }, animLength);
+    }
+}   
+
+ 
+    removePlayer(playerId) {
+    if (!playerId) {
+        console.error("Attempted to remove player with undefined ID");
+        return;
+    }
+    
+    console.log(`Beginning removal of player: ${playerId}`);
+    
+    try {
+        if (this.remotePlayers[playerId]) {
+            // Remove skeleton helper if exists
+            if (this.remotePlayers[playerId].userData && 
+                this.remotePlayers[playerId].userData.skeletonHelper) {
+                console.log(`Removing skeleton helper for ${playerId}`);
+                this.scene.remove(this.remotePlayers[playerId].userData.skeletonHelper);
+            }
+            
+            // Remove player model
+            console.log(`Removing player model for ${playerId}`);
+            this.scene.remove(this.remotePlayers[playerId]);
+            
+            // Remove trails
+            if (this.trails[playerId]) {
+                if (this.trails[playerId].pointsObject) {
+                    this.scene.remove(this.trails[playerId].pointsObject);
+                } else if (this.trails[playerId].line) {
+                    this.scene.remove(this.trails[playerId].line);
+                }
+                delete this.trails[playerId];
+            }
+            
+            // Delete from players list
+            delete this.remotePlayers[playerId];
+            
+            // Update scores
+            if (this.playerScores[playerId]) {
+                delete this.playerScores[playerId];
+                this.updateScoreboard();
+            }
+            
+            // Clean up last update tracking
+            if (this.lastPlayerUpdate[playerId]) {
+                delete this.lastPlayerUpdate[playerId];
+            }
+            
+            console.log(`Player ${playerId} successfully removed`);
+        } else {
+            console.log(`Player ${playerId} not found for removal`);
+        }
+    } catch (error) {
+        console.error(`Error removing player ${playerId}:`, error);
+    }
+}
+checkProximityToImages(position, playerId) {
+    const proximityDistance = 0.2;
+   
+    for (const obstacle of this.obstacles) {
+        const distance = position.distanceTo(obstacle.position);
+        
+        if (distance < proximityDistance) {
+            // Get image ID from obstacle userData
+            const imageId = obstacle.userData.imageId;
+            
+            // Track the image score
+            if (!this.imageScores[imageId]) {
+                this.imageScores[imageId] = 0;
+            }
+            this.imageScores[imageId] += 1;
+            
+            // Update the image scoreboard
+            this.updateImageScoreboard();
+            
+            // Tell other players about the image score
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this.socket.send(JSON.stringify({
+                    type: 'image_score_update',
+                    imageScore: {
+                        id: imageId,
+                        score: this.imageScores[imageId]
+                    }
+                }));
+            }
+            
+            // Award player point (keeping existing functionality)
+            this.addScorePoint(playerId);
+            
+            // Send score update to server for the player - ADD THIS
+            if (this.socket && this.socket.readyState === WebSocket.OPEN && playerId === this.playerId) {
+                this.socket.send(JSON.stringify({
+                    type: 'score_update',
+                    score: {
+                        id: playerId,
+                        score: this.playerScores[playerId]
+                    }
+                }));
+            }
+            
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+checkProximityToImagesAndGetInfo(position, playerId) {
+    const proximityDistance = 0.2;
+   
+    for (const obstacle of this.obstacles) {
+        const distance = position.distanceTo(obstacle.position);
+        
+        if (distance < proximityDistance) {
+            // Get image ID from obstacle userData
+            const imageId = obstacle.userData.imageId;
+            
+            // Track the image score
+            if (!this.imageScores[imageId]) {
+                this.imageScores[imageId] = 0;
+            }
+            this.imageScores[imageId] += 1;
+            
+            // Update the image scoreboard
+            this.updateImageScoreboard();
+            
+            // Tell other players about the image score
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this.socket.send(JSON.stringify({
+                    type: 'image_score_update',
+                    imageScore: {
+                        id: imageId,
+                        score: this.imageScores[imageId]
+                    }
+                }));
+            }
+            
+            // Award player point
+            this.addScorePoint(playerId);
+            
+            // Return the image info
+            return {
+                id: imageId,
+                score: this.imageScores[imageId]
+            };
+        }
+    }
+    return null;
+}
+
+
+ 
+addScorePoint(playerId) {
+    // Initialize score if doesn't exist
+    if (!this.playerScores[playerId]) {
+        this.playerScores[playerId] = 0;
+    }
+    
+    // Add point
+    this.playerScores[playerId] += 1;
+    
+    // Update scoreboard display
+    this.updateScoreboard();
+    
+    // Send score update to server - ADD THIS
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({
+            type: 'score_update',
+            score: {
+                id: playerId,
+                score: this.playerScores[playerId]
+            }
+        }));
+    }
+}
+
+updateScoreboard() {
+    let scoreHTML = '<h3></h3>';
+    
+    // Sort players by score
+    const sortedPlayers = Object.entries(this.playerScores)
+        .sort((a, b) => b[1] - a[1]);
+    
+    // Create scoreboard HTML
+    for (const [playerId, score] of sortedPlayers) {
+        const displayName = playerId === this.playerId ? 
+            'You' : `Player ${playerId.slice(0,8)}`;
+        scoreHTML += `<div>${displayName}: ${score}</div>`;
+    }
+    
+    this.scoreElement.innerHTML = scoreHTML;
+    
+    // Position message log below player scores
+    const scoreRect = this.scoreElement.getBoundingClientRect();
+    this.messageLogElement.style.bottom = (window.innerHeight - scoreRect.top + 10) + 'px';
+}
+
+
+  createSpriteIcon(letter) {
+    // letter is now directly 'A' or 'B'
+    
+    // Create canvas for text
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Text styling
+    //context.font = 'Bold 50px Arial';
+    context.font = 'Bold 50px monospace';
+    context.fillStyle = '#FFFFFF';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // Draw text
+    context.fillText(letter, 64, 64);
+    
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    
+    // Create sprite material
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+        map: texture,
+    });
+    
+    // Create sprite
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(1, 1, 1); // Adjust scale as needed
+    
+    return sprite;
+} 
+    setupMessagePlacement() {
+        // No longer need separate key handlers for emote
+        // as they are now handled in the setupMovement method
+    }
+
+    // Client-side
+  
+
+
+placeIcon(letterType, playAnimation = true) {
+    const icon = this.createSpriteIcon(letterType);
+    
+    // Add random offset in all directions
+    const offsetRange = 1; // Maximum offset distance
+    const randomX = (Math.random() * 2 - 1) * offsetRange;
+    const randomY = Math.random() * offsetRange;
+    const randomZ = (Math.random() * 2 - 1) * offsetRange;
+    
+    // Position icon at player's current location plus random offset
+    icon.position.copy(this.localPlayer.position);
+    icon.position.x += randomX;
+    icon.position.y += 1 + randomY;
+    icon.position.z += randomZ;
+    
+    // Check proximity using PLAYER position (not emoji position)
+    const nearbyBlock = this.checkBlockForEmoji(this.localPlayer.position, this.playerId);
+    
+    // Add to scene
+    this.scene.add(icon);
+    
+    // Create message with timestamp, player, emoji, and block info
+    const timestamp = new Date().toLocaleTimeString();
+    const blockInfo = nearbyBlock ? nearbyBlock.id : "no block";
+    const message = {
+        timestamp: timestamp,
+        playerId: this.playerId,
+        emoji: letterType,
+        blockId: blockInfo
+    };
+    
+    // Add to local messages and update log
+    this.addMessage(message);
+    
+    // Send icon placement and message to server
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({
+            type: 'place_icon',
+            icon: {
+                id: this.playerId,
+                position: {
+                    x: icon.position.x,
+                    y: icon.position.y,
+                    z: icon.position.z
+                },
+                letterType: letterType,
+                emote: playAnimation,
+                playerPosition: {
+                    x: this.localPlayer.position.x,
+                    y: this.localPlayer.position.y,
+                    z: this.localPlayer.position.z
+                }
+            },
+            message: message
+        }));
+    }
+}
+
+
+// 2. New function to check if an emoji is near a block and score it
+checkBlockForEmoji(emojiPosition, playerId) {
+    const proximityDistance = 2.0;
+    
+    for (const block of this.blocks) {
+        // Skip blocks without imageId (non-scoring blocks)
+        if (!block.userData || !block.userData.isScoreBlock) continue;
+        
+        const distance = emojiPosition.distanceTo(block.position);
+        
+        if (distance < proximityDistance) {
+            // Get image ID from block userData
+            const imageId = block.userData.imageId;
+            
+            // Track the score
+            if (!this.imageScores[imageId]) {
+                this.imageScores[imageId] = 0;
+            }
+            this.imageScores[imageId] += 1;
+            
+            // Update the image scoreboard
+            this.updateImageScoreboard();
+            
+            // Tell other players about the score
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this.socket.send(JSON.stringify({
+                    type: 'image_score_update',
+                    imageScore: {
+                        id: imageId,
+                        score: this.imageScores[imageId]
+                    }
+                }));
+            }
+            
+            // Award player point
+            this.addScorePoint(playerId);
+            
+            // Send score update to server for the player
+            if (this.socket && this.socket.readyState === WebSocket.OPEN && playerId === this.playerId) {
+                this.socket.send(JSON.stringify({
+                    type: 'score_update',
+                    score: {
+                        id: playerId,
+                        score: this.playerScores[playerId]
+                    }
+                }));
+            }
+            
+            // Return the block info
+            return {
+                id: imageId,
+                score: this.imageScores[imageId]
+            };
+        }
+    }
+    return null;
+}
+
+
+
+
+
+
+    // Create trail material for specific player
+    createTrailMaterial(playerId) {
+        // Consistent color based on player ID
+        const colorIndex = Math.abs(this.hashCode(playerId)) % this.playerColors.length;
+        const trailColor = this.playerColors[colorIndex];
+
+        return new THREE.LineBasicMaterial({
+            color: trailColor,
+            transparent: true,
+            opacity: 1
+        });
+    }
+
+    // Handle remote player trail
+    handleRemotePlayerTrail(trailData) {
+    // Don't process trail for own player
+    if (trailData.id === this.playerId) return;
+
+    // Create trail for remote player if not exists
+    if (!this.trails[trailData.id]) {
+        // Use PointsMaterial instead of LineBasicMaterial
+        const pointsMaterial = new THREE.PointsMaterial({ 
+            color: trailData.color || 0xffffff,
+            size: 0.2,  // Size of each point
+            sizeAttenuation: true,  // Scale points based on distance
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        this.trails[trailData.id] = {
+            points: [],
+            pointsObject: null,
+            material: pointsMaterial
+        };
+    }
+
+    const trail = this.trails[trailData.id];
+    
+    // Convert trail points
+    const trailPoints = trailData.points.map(p => 
+        new THREE.Vector3(p.x, p.y, p.z)
+    );
+
+    // Remove existing points object if exists
+    if (trail.pointsObject) {
+        this.scene.remove(trail.pointsObject);
+    }
+
+    // Create new points object instead of line
+    const trailGeometry = new THREE.BufferGeometry().setFromPoints(trailPoints);
+    const pointsObject = new THREE.Points(trailGeometry, trail.material);
+    this.scene.add(pointsObject);
+    
+    // Update trail reference
+    trail.pointsObject = pointsObject;
+    trail.points = trailPoints;
+}
+  
+
+updatePlayerTrail(playerId, position) {
+    // Create trail material if not exists
+    if (!this.trails[playerId]) {
+
+
+	  const trailColor = playerId === this.playerId ? 
+		    this.localPlayerColor : 
+		    this.playerColors[Math.abs(this.hashCode(playerId)) % this.playerColors.length];
+           
+        // Create points material instead of line material
+        const pointsMaterial = new THREE.PointsMaterial({ 
+            color: this.playerColors[Math.abs(this.hashCode(playerId)) % this.playerColors.length],
+            size: 0.2,  // Size of each point
+            sizeAttenuation: true,  // Scale points based on distance
+            
+        });
+        
+        this.trails[playerId] = {
+            points: [],
+            pointsObject: null,
+            material: pointsMaterial
+        };
+    }
+
+    const trail = this.trails[playerId];
+    
+    // Only add point every few frames to reduce samples
+    if (!trail.frameCounter) trail.frameCounter = 0;
+    trail.frameCounter++;
+    
+    // Only record position every 5 frames
+    if (trail.frameCounter % 5 === 0) {
+        trail.points.push(new THREE.Vector3(
+            position.x, 
+	    position.y, 
+            position.z
+        ));
+    }
+
+    // Limit trail length
+    const maxTrailPoints = 20000;
+    if (trail.points.length > maxTrailPoints) {
+        trail.points.shift();
+    }
+
+    // Remove existing points object if exists
+    if (trail.pointsObject) {
+        this.scene.remove(trail.pointsObject);
+    }
+
+    // Create points geometry
+    const trailGeometry = new THREE.BufferGeometry().setFromPoints(trail.points);
+    const pointsObject = new THREE.Points(trailGeometry, trail.material);
+    this.scene.add(pointsObject);
+    
+    // Update reference
+    trail.pointsObject = pointsObject;
+
+        // Send trail update to server
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(JSON.stringify({
+                type: 'player_trail',
+                trail: {
+                    id: playerId,
+                    color: trail.material.color.getHex(), // Send color info
+                    points: trail.points.map(p => ({
+                        x: p.x,
+                        y: p.y,
+                        z: p.z
+                    }))
+                }
+            }));
+        }
+    }
+
+    // Create trail material for specific player
+    createTrailMaterial(playerId) {
+        // Consistent color based on player ID
+        const colorIndex = Math.abs(this.hashCode(playerId)) % this.playerColors.length;
+        const trailColor = this.playerColors[colorIndex];
+
+        return new THREE.LineBasicMaterial({
+            color: trailColor,
+            transparent: true,
+            opacity: 1
+        });
+    }
+
+    // Handle remote player trail
+    handleRemotePlayerTrail(trailData) {
+    // Don't process trail for own player
+    if (trailData.id === this.playerId) return;
+
+    // Create trail for remote player if not exists
+    if (!this.trails[trailData.id]) {
+        // Use PointsMaterial instead of LineBasicMaterial
+        const pointsMaterial = new THREE.PointsMaterial({ 
+            color: trailData.color || 0xffffff,
+            size: 0.2,  // Size of each point
+            sizeAttenuation: true,  // Scale points based on distance
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        this.trails[trailData.id] = {
+            points: [],
+            pointsObject: null,
+            material: pointsMaterial
+        };
+    }
+
+    const trail = this.trails[trailData.id];
+    
+    // Convert trail points
+    const trailPoints = trailData.points.map(p => 
+        new THREE.Vector3(p.x, p.y, p.z)
+    );
+
+    // Remove existing points object if exists
+    if (trail.pointsObject) {
+        this.scene.remove(trail.pointsObject);
+    }
+
+    // Create new points object instead of line
+    const trailGeometry = new THREE.BufferGeometry().setFromPoints(trailPoints);
+    const pointsObject = new THREE.Points(trailGeometry, trail.material);
+    this.scene.add(pointsObject);
+    
+    // Update trail reference
+    trail.pointsObject = pointsObject;
+    trail.points = trailPoints;
+}
+
+
+// 4. Update remote icon placement to use blocks instead of images
+// Update remote icon placement to also use player position for scoring
+handleRemoteIconPlacement(iconData) {
+    // Don't place icon for own player
+    if (iconData.id === this.playerId) return;
+
+    // Create icon with the letter directly
+    const letter = iconData.letterType || 'A'; // Default to A if not specified
+    const remoteIcon = this.createSpriteIcon(letter);
+
+    // Position icon
+    remoteIcon.position.set(
+        iconData.position.x,
+        iconData.position.y,
+        iconData.position.z
+    );
+    
+    // Check proximity using the PLAYER position if available, otherwise use icon position
+    const checkPosition = iconData.playerPosition ? 
+        new THREE.Vector3(
+            iconData.playerPosition.x,
+            iconData.playerPosition.y,
+            iconData.playerPosition.z
+        ) : 
+        new THREE.Vector3(
+            iconData.position.x,
+            iconData.position.y,
+            iconData.position.z
+        );
+    
+    // Check for scoring with blocks using player position
+    this.checkBlockForEmoji(checkPosition, iconData.id);
+
+    // Add to scene
+    this.scene.add(remoteIcon);
+    
+    // Only play animation if the emote flag is true
+    if (iconData.emote && this.remotePlayers[iconData.id]) {
+        // Determine which animation to play based on the sender's choice
+        const animationType = iconData.animationType || 'emote';
+        this.playRemotePlayerEmote(iconData.id, animationType);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+ 
+    
+    // Play emote animation on remote player
+    playRemotePlayerEmote(playerId, animationType) {
+    const remotePlayer = this.remotePlayers[playerId];
+    if (!remotePlayer || !remotePlayer.userData || !remotePlayer.userData.animations) return;
+    
+    const animations = remotePlayer.userData.animations;
+    
+    // Skip if animation isn't loaded yet
+    if (!animations[animationType]) return;
+    
+    const currentState = animations.currentState;
+    const oldAction = animations[currentState];
+    
+    // Set up animation
+    animations[animationType].reset();
+    animations[animationType].setLoop(THREE.LoopOnce);
+    animations[animationType].clampWhenFinished = true;
+    animations[animationType].setEffectiveWeight(1);
+    animations[animationType].fadeIn(0.5);
+    animations[animationType].play();
+    
+    // Fade out current animation
+    oldAction.fadeOut(0.5);
+        
+        // Update current state
+        animations.currentState = 'emote';
+        
+        // Return to previous state after emote finishes
+        const emoteLength = animations.emote._clip.duration * 1000; // Convert to milliseconds
+        setTimeout(() => {
+            // Check if player should be walking or idle
+            const isMoving = remotePlayer.userData.isMoving || false;
+            const nextState = isMoving ? 'walking' : 'idle';
+            
+            // Skip if animations don't exist yet
+            if (!animations[nextState]) return;
+            
+            // Crossfade back to appropriate animation
+            animations[nextState].reset();
+            animations[nextState].setEffectiveWeight(1);
+            animations[nextState].fadeIn(0.5);
+            animations[nextState].play();
+            
+            animations.emote.fadeOut(0.5);
+            animations.currentState = nextState;
+        }, emoteLength);
+    }
+
+    initWebSocket() {
+    // Replace with your local network IP of the server
+    //this.socket = new WebSocket('ws://192.168.61.38:8765');
+    //this.socket = new WebSocket('ws://192.168.154.38:8765');
+    this.socket = new WebSocket('ws://192.168.83.38:8765');
+
+
+
+
+ 
+    // Initialize lastCleanupCheck
+    this.lastCleanupCheck = Date.now();
+    
+    this.socket.onopen = () => {
+        console.log('Connected to WebSocket server');
+        
+        // Setup ping interval to keep connection alive and detect disconnects
+        this.pingInterval = setInterval(() => {
+            if (this.socket.readyState === WebSocket.OPEN) {
+                console.log('Sending ping to server');
+                this.socket.send(JSON.stringify({
+                    type: 'ping'
+                }));
+            }
+        }, 30000); // Send ping every 30 seconds
+    };
+    
+    this.socket.onclose = (event) => {
+        console.log(`WebSocket connection closed: ${event.code} - ${event.reason}`);
+        
+        // Clear ping interval
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+        }
+        
+        // Add reconnection logic if needed
+        console.log('Attempting to reconnect in 5 seconds...');
+        setTimeout(() => this.initWebSocket(), 5000);
+    };
+    
+    this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    this.socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(`Received message type: ${data.type}`, data);   
+        switch(data.type) {
+	
+
+
+
+
+
+
+
+
+// In the initialize case in the client's socket onmessage
+case 'initialize':
+    this.playerId = data.player_id;
+    console.log('My Player ID:', this.playerId);
+    
+    // Handle initial image scores if provided
+    if (data.imageScores) {
+        console.log('Received initial image scores:', data.imageScores);
+        this.imageScores = data.imageScores;
+        this.updateImageScoreboard();
+    }
+    
+    // Handle existing messages
+    if (data.existing_messages) {
+        console.log('Received existing messages:', data.existing_messages);
+        this.messages = data.existing_messages.slice(0, 10);
+        this.updateMessageLog();
+    }
+    
+    // Handle existing blocks - add this part
+    if (data.blocks && Array.isArray(data.blocks)) {
+        console.log('Received existing blocks:', data.blocks.length);
+        data.blocks.forEach(blockData => {
+            this.handleRemoteBlockPlacement(blockData);
+        });
+    }
+    
+    this.localPlayerColor = this.playerColors[Math.abs(this.hashCode(this.playerId)) % this.playerColors.length];
+    this.updateLocalPlayerColor(this.localPlayerColor);
+    break;
+
+
+
+
+case 'place_block':
+    this.handleRemoteBlockPlacement(data.block);
+    break;
+
+
+case 'block_history':
+    console.log("Received block history:", data.blocks);
+    if (Array.isArray(data.blocks)) {
+        data.blocks.forEach(blockData => {
+            this.handleRemoteBlockPlacement(blockData);
+        });
+    }
+    break;
+	
+
+       case 'message':
+    if (data.message) {
+        this.addMessage(data.message);
+    }
+    break; 
+
+            case 'player_update':
+                this.updateRemotePlayer(data.player);
+                break;
+            
+            case 'player_trail':
+                this.handleRemotePlayerTrail(data.trail);
+                break;
+            
+            case 'place_icon':
+                this.handleRemoteIconPlacement(data.icon);
+                break;
+                
+
+
+case 'image_score_update':
+    const imageScoreData = data.imageScore;
+    console.log('Received image score update:', imageScoreData);
+    
+    if (imageScoreData && imageScoreData.id !== undefined) {
+        this.imageScores[imageScoreData.id] = imageScoreData.score;
+        this.updateImageScoreboard();
+    } else {
+        console.error('Invalid image score data:', imageScoreData);
+    }
+    break;
+           
+
+
+case 'score_update':
+    const scoreData = data.score;
+    if (scoreData && scoreData.id && scoreData.score !== undefined) {
+        // Update player's score
+        this.playerScores[scoreData.id] = scoreData.score;
+        this.updateScoreboard();
+        console.log(`Updated score for player ${scoreData.id}: ${scoreData.score}`);
+    }
+    break;
+
+
+
+            case 'player_disconnect':
+                console.log(`Received disconnect notification for player: ${data.id}`);
+                if (data.id && this.remotePlayers[data.id]) {
+                    console.log(`Removing disconnected player: ${data.id}`);
+                    
+                    // Remove from scene
+                    this.removePlayer(data.id);
+                    
+                    // Confirm removal
+                    console.log(`Player removed, remaining players: ${Object.keys(this.remotePlayers).length}`);
+                } else {
+                    console.log(`Player ${data.id} not found in remotePlayers or invalid ID`);
+                }
+                break;
+
+            case 'pong':
+                console.log('Received pong from server');
+                break;
+                
+            default:
+                console.log(`Unknown message type: ${data.type}`);
+        }
+    };
+}
+
+    updateRemotePlayer(playerData) {
+    const playerId = playerData.id;
+    
+    // Don't update our own player
+    if (playerId === this.playerId) return;
+
+    // Update last activity timestamp
+    this.lastPlayerUpdate[playerId] = Date.now();
+    
+    // Create player if not exists
+    if (!this.remotePlayers[playerId]) {
+        console.log(`Creating new remote player: ${playerId}`);
+        
+        // Create a temporary placeholder
+        const tempGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const tempMaterial = new THREE.MeshBasicMaterial({ 
+            color: this.playerColors[Math.abs(this.hashCode(playerId)) % this.playerColors.length],
+            wireframe: true 
+        });
+        const tempMesh = new THREE.Mesh(tempGeometry, tempMaterial);
+        
+        // Set position from player data
+        tempMesh.position.set(
+            playerData.position.x, 
+            playerData.position.y || 0, 
+            playerData.position.z
+        );
+        
+        // Add to scene and store reference
+        this.scene.add(tempMesh);
+        this.remotePlayers[playerId] = tempMesh;
+        
+        // Flag this as a temporary mesh
+        tempMesh.userData = { isTemporary: true };
+        
+        // Create the full model asynchronously
+        this.createRemotePlayerModel(playerId, playerData);
+        return;
+    }
+
+    // If this is a temporary mesh waiting for the model to load, just update position
+    if (this.remotePlayers[playerId].userData && this.remotePlayers[playerId].userData.isTemporary) {
+        this.remotePlayers[playerId].position.set(
+            playerData.position.x, 
+            playerData.position.y || 0, 
+            playerData.position.z
+        );
+        return;
+    }
+
+    // Regular update for fully loaded player
+    const remotePlayer = this.remotePlayers[playerId];
+    remotePlayer.position.set(
+        playerData.position.x, 
+        playerData.position.y || 0, 
+        playerData.position.z
+    );
+
+        
+        
+        // Update player rotation if provided
+        if (playerData.rotation) {
+            remotePlayer.rotation.y = playerData.rotation.y;
+        }
+        
+        // Store movement state from sender
+        if (remotePlayer.userData && playerData.isMoving !== undefined) {
+            remotePlayer.userData.isMoving = playerData.isMoving;
+        }
+        
+        // Update animation based on explicit animation state if provided
+        if (playerData.animation) {
+            this.updateRemotePlayerAnimationState(playerId, playerData.animation);
+        } else {
+            // Fallback to movement-based animation
+            this.updateRemotePlayerAnimation(playerId, playerData);
+        }
+    }
+    
+    // Create remote player model from same GLB as local player
+createRemotePlayerModel(playerId, initialData) {
+    const loader = new GLTFLoader();
+ 
+
+
+    const playerColor = this.playerColors[Math.abs(this.hashCode(playerId)) % this.playerColors.length];
+   
+    // Load the same model as the local player
+    loader.load('idle.glb', (gltf) => {
+        // Check if player still exists (they might have disconnected during loading)
+        if (!this.remotePlayers[playerId]) return;
+        
+        // Get the temporary mesh position
+        const oldPosition = this.remotePlayers[playerId].position.clone();
+        
+        // Remove the temporary mesh
+        this.scene.remove(this.remotePlayers[playerId]);
+        
+        // Setup the model
+        const remotePlayerModel = gltf.scene;
+        this.scene.add(remotePlayerModel);
+        
+        // Position at the same location as temp mesh
+        remotePlayerModel.position.copy(oldPosition);
+        
+        // Store reference to the remote player (replacing temp mesh)
+        this.remotePlayers[playerId] = remotePlayerModel;
+            
+            // Setup animation mixer for this remote player
+            const mixer = new THREE.AnimationMixer(remotePlayerModel);
+            
+            // Create animation clips for this player
+            // Create animation clips for this player
+	const remoteAnimations = {
+	    idle: null,
+	    walking: null,
+	    emote: null,
+	    angry: null,
+	    aim: null,
+	    boxing: null,
+	    clapping: null,
+	    dismiss: null,
+	    jump: null,
+	    currentState: 'idle',
+	    mixer: mixer
+	};            
+            // Add idle animation first
+            if (gltf.animations && gltf.animations.length > 0) {
+                remoteAnimations.idle = mixer.clipAction(gltf.animations[0]);
+                remoteAnimations.idle.play(); // Start with idle animation
+            }
+            
+            // Create skeleton helper
+            let skeletonHelper = null;
+            remotePlayerModel.traverse((child) => {
+                if (child.isMesh) {
+                    // Create skeleton helper
+                    if (child.skeleton && !skeletonHelper) {
+                        skeletonHelper = new THREE.SkeletonHelper(remotePlayerModel);
+
+		skeletonHelper.material = new THREE.LineBasicMaterial({
+			color: playerColor,
+			linewidth: 3,
+			depthTest: true,
+			transparent: true,
+			opacity: 1
+		    });
+
+                        skeletonHelper.material.linewidth = 6;
+                        skeletonHelper.material.depthTest = true; // Enable depth testing
+                        skeletonHelper.material.opacity = 1; // Make it slightly transparent
+                        skeletonHelper.material.transparent = true;
+                        this.scene.add(skeletonHelper);
+
+
+            		skeletonHelper.material.color.setHex(playerColor);
+                    }
+
+
+
+                    
+                    // Hide the mesh but keep for animation
+                    child.visible = false;
+                }
+            });
+            
+            // Add head sphere for remote player too
+            this.addRemotePlayerHeadSphere(remotePlayerModel, playerColor);
+
+            // If no skeleton found, make a visible placeholder
+            if (!skeletonHelper) {
+                const visibleGeometry = new THREE.BoxGeometry(1, 2, 1);
+                const visibleMaterial = new THREE.MeshBasicMaterial({
+                    color: this.playerColors[Math.abs(this.hashCode(playerId)) % this.playerColors.length]
+                });
+                const visibleBox = new THREE.Mesh(visibleGeometry, visibleMaterial);
+                remotePlayerModel.add(visibleBox);
+            }
+            
+            // Create and add name sprite
+            const nameSprite = this.createPlayerNameSprite(`${playerId.slice(0,8)}`);
+            remotePlayerModel.add(nameSprite);
+            nameSprite.position.y = 2; // Position sprite above player
+            
+            // Store animations and mixer with the player
+            remotePlayerModel.userData = {
+                animations: remoteAnimations,
+                skeletonHelper: skeletonHelper
+            };
+            
+
+
+// Load all remaining animations in parallel
+        const animationFiles = [
+            'walking.glb', 'emote.glb', 'angry.glb', 'aim.glb',
+            'boxing.glb', 'clapping.glb', 'dismiss.glb', 'jump2.glb'
+        ];
+        const animationNames = [
+            'walking', 'emote', 'angry', 'aim',
+            'boxing', 'clapping', 'dismiss', 'jump2'
+        ];
+        
+        // Load each animation
+        let loadedCount = 0;
+        for (let i = 0; i < animationFiles.length; i++) {
+            const fileName = animationFiles[i];
+            const animName = animationNames[i];
+            
+            loader.load(fileName, (animGltf) => {
+                // Check again if player still exists
+                if (!this.remotePlayers[playerId]) return;
+                
+                if (animGltf.animations && animGltf.animations.length > 0) {
+                    // Make sure userData still exists
+                    if (this.remotePlayers[playerId].userData && 
+                        this.remotePlayers[playerId].userData.animations) {
+                        this.remotePlayers[playerId].userData.animations[animName] = 
+                            mixer.clipAction(animGltf.animations[0]);
+                        
+                        loadedCount++;
+                        if (loadedCount === animationFiles.length) {
+                            console.log(`All animations loaded for remote player ${playerId.slice(0,8)}`);
+                        }
+                    }
+                }
+            });
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+    // Add a sphere to a remote player's head
+    addRemotePlayerHeadSphere(playerModel, color = 0xFFFFFF) {
+        // Create a large white sphere for remote players too
+        const sphereGeometry = new THREE.SphereGeometry(20, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: color,
+            transparent: true,
+            opacity: 1
+        });
+        const headSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        
+        // Try to find the head bone
+        let headBone = null;
+        
+        playerModel.traverse((object) => {
+            // Look for a bone that might be the head
+            if (object.isBone) {
+                const name = object.name.toLowerCase();
+                if (name.includes('head') || name.includes('skull') || name.includes('face')) {
+                    headBone = object;
+                    console.log('Found remote player head bone:', object.name);
+                }
+            }
+        });
+        
+        // If we found a head bone, attach the sphere to it
+        if (headBone) {
+            headBone.add(headSphere);
+            console.log('Added sphere to remote player head bone');
+        } else {
+            // If no head bone found, try to estimate head position
+            console.log('No remote player head bone found, estimating position');
+            playerModel.add(headSphere);
+            headSphere.position.y = 1.7; // Approximate head height
+        }
+        
+        // Store reference to head sphere for later updates
+        playerModel.userData.headSphere = headSphere;
+    }
+    
+    // Update remote player animation based on movement
+    updateRemotePlayerAnimation(playerId, playerData) {
+        const remotePlayer = this.remotePlayers[playerId];
+        if (!remotePlayer || !remotePlayer.userData || !remotePlayer.userData.animations) return;
+        
+        const animations = remotePlayer.userData.animations;
+        
+        // Skip if animations aren't loaded yet
+        if (!animations.idle || !animations.walking) return;
+        
+        // Check if player is moving (compare current position with last known position)
+        let isMoving = false;
+        
+        // Store last position if not exists
+        if (!remotePlayer.userData.lastPosition) {
+            remotePlayer.userData.lastPosition = new THREE.Vector3(
+                playerData.position.x,
+                playerData.position.y || 0,
+                playerData.position.z
+            );
+        } else {
+            // Calculate distance moved
+            const currentPosition = new THREE.Vector3(
+                playerData.position.x,
+                playerData.position.y || 0,
+                playerData.position.z
+            );
+            
+            const distance = remotePlayer.userData.lastPosition.distanceTo(currentPosition);
+            isMoving = distance > 0.01; // Movement threshold
+            
+            // Update last position
+            remotePlayer.userData.lastPosition.copy(currentPosition);
+        }
+        
+        // Store moving state
+        remotePlayer.userData.isMoving = isMoving;
+        
+        // Change animation if needed
+        const currentState = animations.currentState;
+        const newState = isMoving ? 'walking' : 'idle';
+        
+        // Skip if special animation (emote) is playing or state is the same
+        if (currentState === 'emote' || currentState === newState) return;
+        
+        // Crossfade to new animation
+        const oldAction = animations[currentState];
+        const newAction = animations[newState];
+        
+        newAction.reset()
+            .setEffectiveWeight(1)
+            .fadeIn(0.5)
+            .play();
+            
+        oldAction.fadeOut(0.5);
+        
+        // Update current state
+        animations.currentState = newState;
+    }
+    
+    // Update remote player animation based on explicit animation state
+    updateRemotePlayerAnimationState(playerId, animationState) {
+        const remotePlayer = this.remotePlayers[playerId];
+        if (!remotePlayer || !remotePlayer.userData || !remotePlayer.userData.animations) return;
+        
+        const animations = remotePlayer.userData.animations;
+        
+        // Skip if animations aren't loaded yet or animation doesn't exist
+        if (!animations[animationState]) {
+            console.log(`Remote player animation not available: ${animationState}`);
+            return;
+        }
+        
+        // Skip if already in this state
+        if (animations.currentState === animationState) return;
+        
+        console.log(`Remote player ${playerId.slice(0,8)} changing animation to ${animationState} from ${animations.currentState}`);
+        
+        // Crossfade to new animation
+        const oldAction = animations[animations.currentState];
+        const newAction = animations[animationState];
+        
+        // Handle special case for emote and angry
+        if (animationState === 'emote' || animationState === 'angry') {
+            newAction.setLoop(THREE.LoopOnce);
+            newAction.clampWhenFinished = true;
+        } else {
+            newAction.setLoop(THREE.LoopRepeat);
+        }
+        
+        newAction.reset();
+        newAction.setEffectiveWeight(1);
+        newAction.fadeIn(0.5);
+        newAction.play();
+            
+        if (oldAction) {
+            oldAction.fadeOut(0.5);
+        }
+        
+        // Update current state
+        animations.currentState = animationState;
+        
+        // For emote animation, return to previous state when finished
+        if (animationState === 'emote' || animationState === 'angry') {
+    const animLength = newAction._clip.duration * 1000;
+    setTimeout(() => {
+        const nextState = remotePlayer.userData.isMoving ? 'walking' : 'idle';
+        this.updateRemotePlayerAnimationState(playerId, nextState);
+    }, animLength);
+        }
+    }
+
+    createPlayerNameSprite(text, color = '#ffffff') {
+        // Create canvas for text
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Text styling
+        //context.font = 'Bold 60px Arial';
+        context.font = 'Bold 60px monospace';
+        context.fillStyle = color;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        
+        
+        // Draw text
+        context.fillText(text, canvas.width / 2, canvas.height / 2);
+        
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        
+        // Create sprite
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+            map: texture,
+        });
+        
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(2, 0.6, 1); // Adjust scale as needed
+        sprite.position.y = 2.5;
+        
+        return sprite;
+    }
+
+    
+
+    // Simple hash function to generate consistent colors
+    hashCode(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash;
+    }
+
+    
+
+
+
+
+    setupMovement() {
+        const moveSpeed = 0.93; // Reduced from 0.1 to make movement slower
+        const rotateSpeed = 0.01; // Speed of rotation
+        this.keys = {};
+
+     window.addEventListener('keydown', (e) => {
+    this.keys[e.code] = true;
+
+
+    
+    const currentTime = Date.now();
+    const canPlaceIcon = currentTime - this.lastIconPlacedTime >= this.iconCooldownPeriod;
+
+ if (e.code === 'Space' && !this.isJumping && e.repeat === false) {
+    this.isJumping = true;
+    this.jumpVelocity = this.jumpForce;
+    
+    // Get the jump animation clip and calculate its duration
+    if (this.animations.jump) {
+        const jumpClip = this.animations.jump._clip;
+        this.jumpAnimationDuration = jumpClip.duration * 1000; // in milliseconds
+        
+        // Store the jump start time
+        this.jumpStartTime = Date.now();
+        
+        // Play the jump animation
+        this.setAnimation('jump');
+    }
+}    
+
+
+
+
+    // Handle key C - only play a random animation (no sprite)
+if (e.code === 'KeyC' && e.repeat === false) {
+    // Choose randomly from all available one-shot animations
+    const animations = [ 'angry', 'aim', 'clapping', 'dismiss', 'jump'];
+    const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+    this.setAnimation(randomAnimation);
+}    
+    // Handle key F - only place sprite (no animation)
+    if (e.code === 'KeyF' && canPlaceIcon && e.repeat === false) {
+	const letters = ['🏛️', '🏗️', '🏢', '🏤', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🏯', '🏰', '💒', '⛪', '🕌', '🕍', '⛩️', '🕋', '⛲', '⛺', '🏚️', '🏠', '🏡', '🏘️', '🧱', '🪟', '🪞', '🚪', '🪑', '🛋️', '🪵', '🪨', '🎨', '🖌️', '🖼️', '🎭', '🎬', '🎼', '🎵', '🎹', '🎷', '🎺', '🎸', '🪕', '🎻', '🎮', '🎯', '🎪', '🎤', '📝', '📚', '📕', '📘', '📙', '🖋️', '✒️', '🖊️', '🖌️', '📷', '📸', '📹', '📱', '🎞️', '📽️', '🎥', '📺', '✏️', '📐', '📏', '📌', '📍', '🔍', '🔎', '🔧', '🔨', '🪓', '⛏️', '⚒️', '🛠️', '🗡️', '⚔️', '🔫', '🪃', '🏹', '🛡️', '🪚', '🔩', '⚙️', '🗜️', '⚖️', '🔗', '⛓️', '🧰', '🧲', '🪛', '🪝', '🪜', '🧬', '🔬', '🔭', '📡', '💉', '🩸', '💊', '🧪', '🧫', '🧬', '🔋', '🔌', '💡', '🔦', '🪔', '🧯', '🚽', '🚿', '🧻'];
+	const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+        this.placeIcon(randomLetter, false); // Pass false to indicate no animation
+        this.lastIconPlacedTime = currentTime;
+    }
+
+
+if (e.code === 'KeyP' && e.repeat === false) {
+        this.placeBlock();
+    }
+}); 
+
+
+
+
+
+
+
+
+
+
+ 
+        window.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+        });
+
+      this.moveHandler = () => {
+    let moved = false;
+           
+    // Handle jumping physics
+    if (this.isJumping || this.localPlayer.position.y > 0) {
+        // Apply jump velocity and gravity
+        this.localPlayer.position.y += this.jumpVelocity;
+        this.jumpVelocity -= this.gravity;
+        
+        // Check if we've landed on a block
+        const standingOnBlock = this.checkBlockSupport(this.localPlayer.position);
+        
+        // Check if landing on ground
+        if (this.localPlayer.position.y <= 0 && !standingOnBlock) {
+            this.localPlayer.position.y = 0;
+            this.isJumping = false;
+            this.jumpVelocity = 0;
+            
+            // Return to idle or walking animation
+            if (this.isMoving) {
+                this.setAnimation('walking');
+            } else {
+                this.setAnimation('idle');
+            }
+        } else if (standingOnBlock && this.jumpVelocity < 0) {
+            // We landed on a block
+            this.isJumping = false;
+            this.jumpVelocity = 0;
+            
+            // Return to idle or walking animation
+            if (this.isMoving) {
+                this.setAnimation('walking');
+            } else {
+                this.setAnimation('idle');
+            }
+        }
+        
+        moved = true;
+    }
+ 
+    // Handle rotation (D/E for left/right)
+    if (this.keys['KeyD']) {
+        // Rotate player direction left
+        this.playerDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotateSpeed || 0.05);
+        moved = true;
+    }
+    if (this.keys['KeyE']) {
+        // Rotate player direction right
+        this.playerDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), -(this.rotateSpeed || 0.05));
+        moved = true;
+    }
+    
+    // Store original position for collision resolution
+    const originalPosition = this.localPlayer.position.clone();
+    
+    // Movement flag for animation
+    let isMovingFB = false;
+    
+    // Move forward/backward (A/B)
+    if (this.keys['KeyA']) {
+        // Calculate potential new position
+        const moveDirection = this.playerDirection.clone().normalize();
+        const newPosition = this.localPlayer.position.clone();
+        newPosition.add(moveDirection.multiplyScalar(this.moveSpeed || 0.03));
+        
+        // Update position
+        this.localPlayer.position.copy(newPosition);
+        
+        // Check for block collision and resolve
+        this.checkBlockCollision(this.localPlayer.position);
+        
+        moved = true;
+        isMovingFB = true;
+    }
+    if (this.keys['KeyB']) {
+        // Calculate potential new position
+        const moveDirection = this.playerDirection.clone().normalize();
+        const newPosition = this.localPlayer.position.clone();
+        newPosition.sub(moveDirection.multiplyScalar(this.moveSpeed || 0.03));
+        
+        // Update position
+        this.localPlayer.position.copy(newPosition);
+        
+        // Check for block collision and resolve
+        this.checkBlockCollision(this.localPlayer.position);
+        
+        moved = true;
+        isMovingFB = true;
+    }
+   
+
+
+	// Check for A+B camera toggle
+	if (this.keys['KeyA'] && this.keys['KeyB']) {
+	    // Only toggle once per key press combination
+	    if (!this.isTogglingCamera) {
+		this.isTogglingCamera = true;
+		this.toggleCameraView();
+	    }
+	} else {
+	    // Reset toggle flag when keys are released
+	    this.isTogglingCamera = false;
+	}
+
+
+ 
+    // If we're not jumping but moving up/down slopes or on blocks
+    if (!this.isJumping && this.localPlayer.position.y > 0) {
+        // Check if we're still supported by a block
+        if (!this.checkBlockSupport(this.localPlayer.position)) {
+            // Start falling if we walked off a block
+            this.isJumping = true;
+            this.jumpVelocity = 0; // Start with no upward velocity
+        }
+    }
+    
+    // Update animation state based on movement
+    if (isMovingFB && this.animationState !== 'emote' && !this.isJumping) {
+        this.setAnimation('walking');
+    } else if (!isMovingFB && this.animationState === 'walking' && !this.isJumping) {
+        this.setAnimation('idle');
+    }
+    
+    // Track movement state for networking
+    this.isMoving = isMovingFB;
+    
+    // Update camera position to follow player with the same orientation
+	if (this.isTopView) {
+	    // Top-down view: position camera directly above player
+	    this.camera.position.set(
+		this.localPlayer.position.x,
+		this.localPlayer.position.y + this.cameraHeight,
+		this.localPlayer.position.z
+	    );
+	    // Look straight down at player
+	    this.camera.lookAt(this.localPlayer.position);
+	} else {
+	    // Perspective view: normal third-person camera
+	    const cameraOffset = this.playerDirection.clone().multiplyScalar(-this.cameraDistance);
+	    cameraOffset.y = this.cameraHeight;
+	    
+	    this.camera.position.copy(this.localPlayer.position).add(cameraOffset);
+	    this.camera.lookAt(
+		new THREE.Vector3(
+		    this.localPlayer.position.x,
+		    this.localPlayer.position.y + 1, // Look at upper body level
+		    this.localPlayer.position.z
+		)
+	    );
+	}    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    // Update player model to face the direction
+    this.localPlayer.rotation.y = Math.atan2(
+        this.playerDirection.x,
+        this.playerDirection.z
+    );
+    
+    // Check for texture pickup when player moves
+    if (moved) {
+        // Check proximity to images
+       // this.checkProximityToImages(this.localPlayer.position, this.playerId);
+	//this.checkProximityToBlocks(this.localPlayer.position, this.playerId);       
+
+ 
+        // Send player update to server
+        this.sendPlayerUpdate();
+    }
+    
+    // Check world boundaries
+    if (this.localPlayer.position.x < this.worldBounds.minX || 
+        this.localPlayer.position.x > this.worldBounds.maxX ||
+        this.localPlayer.position.z < this.worldBounds.minZ || 
+        this.localPlayer.position.z > this.worldBounds.maxZ) {
+        
+        console.log("Player out of bounds, respawning...");
+        const respawnPos = this.getRandomSpawnPosition();
+        this.localPlayer.position.set(respawnPos.x, respawnPos.y, respawnPos.z);
+        
+        // Update camera immediately to prevent jarring transition
+        const cameraOffset = this.playerDirection.clone().multiplyScalar(-this.cameraDistance);
+        cameraOffset.y = this.cameraHeight;
+        this.camera.position.copy(this.localPlayer.position).add(cameraOffset);
+        
+        // Force an update to tell other players about the teleport
+        this.sendPlayerUpdate();
+    }
+}; 
+    }
+
+    sendPlayerUpdate() {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            // Make sure we're sending the correct animation state
+            const currentAnimation = this.animationState;
+            
+            const updateData = {
+                type: 'player_update',
+                player: {
+                    id: this.playerId,
+                    position: {
+                        x: this.localPlayer.position.x,
+                        y: this.localPlayer.position.y,
+                        z: this.localPlayer.position.z
+                    },
+                    rotation: {
+                        y: this.localPlayer.rotation.y
+                    },
+                    animation: currentAnimation,
+                    isMoving: this.isMoving
+                }
+            };
+            
+            // For debugging
+            if (this._lastSentAnimation !== currentAnimation) {
+                console.log(`Sending animation state: ${currentAnimation}, isMoving: ${this.isMoving}`);
+                this._lastSentAnimation = currentAnimation;
+            }
+            
+            // Update trail
+            this.updatePlayerTrail(this.playerId, updateData.player.position);
+            
+            this.socket.send(JSON.stringify(updateData));
+        }
+    }
+
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    animate = () => {
+    requestAnimationFrame(this.animate);
+    // Begin measuring performance
+    this.fpsStats.begin();
+    this.msStats.begin();
+    this.memStats.begin();
+    
+    const delta = this.clock.getDelta();
+    
+    // Update local player animations
+    if (this.mixer) {
+        this.mixer.update(delta);
+    }
+    
+    // Update remote player animations
+    for (const playerId in this.remotePlayers) {
+        const remotePlayer = this.remotePlayers[playerId];
+        if (remotePlayer.userData && remotePlayer.userData.animations) {
+            remotePlayer.userData.animations.mixer.update(delta);
+        }
+    }
+
+
+// Check if we have a pending scoreboard update
+    if (this.pendingScoreboardUpdate && 
+        (!this.lastScoreboardUpdate || Date.now() - this.lastScoreboardUpdate >= 500)) {
+        this.updateImageScoreboard();
+    }
+    
+    // Removed the inactive player check since we want to handle
+    // this through actual disconnect events from the server
+    // instead of client-side timeouts
+    
+    // Handle player movement
+    this.moveHandler();
+    
+    // Render scene
+    this.renderer.render(this.scene, this.camera);
+ this.fpsStats.end();
+    this.msStats.end();
+    this.memStats.end();
+}
+}
+
+// Initialize the game
+const game = new MultiplayerGame();
+    </script>
+</body>
+</html>
