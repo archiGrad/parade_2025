@@ -1,0 +1,232 @@
+/* style.css */
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    font-size: 20px;
+    color: white;
+}
+
+.main-container {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+
+
+
+
+
+
+
+
+
+#logo_container {
+    font-size: 20px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+}
+
+#logo_title {
+    font-size: 10px;
+    background: black;
+    font-weight: Bold;
+    color: white;
+    padding: 2px 5px;
+    display: inline-block;
+    width: fit-content;
+}
+
+#logo_names {
+    font-size: 10px;
+    color: white;
+    background: black;
+    padding: 2px 5px;
+    display: block;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.logo {
+	position:absolute;
+bottom: 10px;
+right: 20px;
+  height: 50px; /* Adjust size as needed */
+  width: auto;
+  display: block;
+
+}
+
+
+
+
+
+
+.sketch-container {
+    width: 100%;
+    height: 100%;
+}
+
+#generateQrBtn {
+    position: absolute;
+    top: 10px;
+    right: 100px;
+    z-index: 100;
+    cursor: pointer;
+}
+
+#qrCodeContainer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    display: none;
+    z-index: 200;
+    text-align: center;
+}
+
+
+
+
+
+
+
+/* Updated CSS for completely inverted text with no backgrounds or borders */
+
+#parade-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 100;
+  font-family: Arial, sans-serif;
+  pointer-events: none; /* Allow clicks to pass through */
+  mix-blend-mode: difference; /* Apply difference blend mode to the entire container */
+}
+
+
+
+
+
+/* Updated CSS for completely inverted text with no backgrounds or borders */
+
+
+
+
+
+#parade-logo .subtitle {
+  color: white; /* Start with white */
+  font-size: 60px;
+  font-weight: bold;
+  text-align: left;
+  display: inline-block;
+}
+
+
+
+
+
+.cover-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  mix-blend-mode: exclusion; /* Alternative to exclusion, more contrast */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+.chula-logo {
+	position:absolute;
+right: 18px;
+  height: 80px; /* Adjust size as needed */
+  width: auto;
+  display: block;
+  filter: brightness(0);
+
+}
+
+#studentimage-container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  text-align: center;
+  bottom: 10px;
+}
+
+.studentimage {
+  font-family: Arial, sans-serif;
+  font-weight: Bold;
+  font-size: 10px;
+  color: white;
+  word-wrap: break-word;
+  overflow: hidden;
+  display: inline-block;
+}
+
+/* Animation keyframes for background color transition */
+@keyframes flashBackground {
+  0% { background-color: red; }
+  100% { background-color: black; }
+}
+
+/* Class to trigger the animation */
+.bg-animate {
+  animation: flashBackground 0.5s linear forwards;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
