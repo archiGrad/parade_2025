@@ -2,43 +2,36 @@
 
 This repository contains multiple project branches, each focusing on different technologies and implementations. Below you'll find information about each branch and its specific purpose.
 
-## Pi Configuration Branch
 
-### Overview
-Basic Pi setup with OS, window manager, shell and dependencies.
 
-### File Structure
-```
-[joris@thinkpad ~/Documents/archiGrad/parade_2025/pi_config_files]$ tree -al
-.
-├── alanpeabody.zsh-theme
-├── config
-├── make_img.sh
-├── manual.md
-├── setup.sh
-├── .tmux.conf
-├── .vimrc
-└── .zshrc
-```
 
+
+
+
+
+## Interactive Website Branch
+
+![Interactive Website](interactive.png)
+
+the folder is named docs. this is one of github requirements if you want to rujn index.html not in root.
 ### Setup Instructions
-1. Run the setup script to automatically configure your Raspberry Pi environment:
 ```bash
-./setup.sh
-```
-
-2. Manually start the display manager:
-```bash
-sudo systemctl start lightdm
+python -m http.server
 ```
 
 ---
+
+
+
+
 
 ## Multiplayer Block Placing Game Branch
 
 ![ArchiGrad Multiplayer Game](multi.png)
 
 # ArchiGrad - Multiplayer 3D Walking Game
+the same setup as the interactive one in terms of movement, player etc. but this on uses wesickets for multiplayer functionality. and the install is a it diferent. 
+
 A real-time multiplayer 3D walking game built with Three.js where players can explore, place blocks with architectural textures, and interact with each other in a shared virtual space.
 
 ## What This Does
@@ -139,27 +132,58 @@ http://YOUR_IP_ADDRESS:8000
 
 ---
 
+
+
+
+
+
+
+
+
+## LED Screen Game Branch
+
+pixelsorting led wall screen. with qr code functionality. if you want the qr code to work, make sure you change the ip adress with th enew one through hostname -I. also run websockets first, then the server.
+it basically takes a printscreen, does a request to imagebb with right credentials,  uploads it , gives a link, converts that link into a qr, serves that qr to the user.
+![LED Screen Game](led.png)
+
+---
+
+
+## Pi Configuration Branch
+
+### Overview
+Basic Pi setup with OS, window manager, shell and dependencies.
+
+### File Structure
+```
+[joris@thinkpad ~/Documents/archiGrad/parade_2025/pi_config_files]$ tree -al
+.
+├── alanpeabody.zsh-theme
+├── config
+├── make_img.sh
+├── manual.md
+├── setup.sh
+├── .tmux.conf
+├── .vimrc
+└── .zshrc
+```
+
+### Setup Instructions
+1. Run the setup script to automatically configure your Raspberry Pi environment:
+```bash
+./setup.sh
+```
+
+2. Manually start the display manager:
+```bash
+sudo systemctl start lightdm
+```
+
+---
+
 ## Houdini Table Sorting Branch
 
 ![Houdini Table Sorting](houdini.png)
 
 ---
 
-## Interactive Website Branch
-
-![Interactive Website](interactive.png)
-
-### Setup Instructions
-```bash
-python -m http.server
-```
-
----
-
-## LED Screen Game Branch
-
-![LED Screen Game](led.png)
-
----
-
-## General Information
