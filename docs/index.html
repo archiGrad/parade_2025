@@ -1,1 +1,1575 @@
-hehehe
+<ckup !DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singleplayer Three.js Walking Game with World Building</title>
+    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+ 
+
+#logo_container {
+    position: absolute;
+    bottom: 60px;  /* Positioned above loading info */
+    left: 20px;
+    color: white;
+    font-family:  monospace;
+    text-align: left;  /* Changed from right to left */
+    z-index: 100;
+}
+
+
+#parade_container {
+    position: absolute;
+    top: 20px;  /* Positioned above loading info */
+    left: 20px;
+    color: white;
+    font-family:  monospace;
+    text-align: right;  /* Changed from right to left */
+    z-index: 100;
+}
+
+
+
+        #parade_title {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+
+
+
+        #logo_title {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #logo_names {
+            display: block;
+            font-size: 14px;
+        }
+        #studentimage-container {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+        #controls-help {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 10px;
+            z-index: 100;
+        }
+        #controls-help p {
+            margin: 5px 0;
+        }
+        .loading-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 3px;
+            z-index: 100;
+        }
+
+	#game-container {
+	    position: absolute;
+	    top: 0;
+	    left: 0;
+	    width: 70%;
+	    height: 100%;
+	}
+
+	#image-preview {
+	    position: absolute;
+	    top: 0;
+	    right: 0;
+	    width: 30%;
+	    height: 100%;
+	    background-color: #000;
+	    display: none;
+	    padding: 20px;
+	    box-sizing: border-box;
+	    overflow: auto;
+	}
+
+	#preview-image {
+	    width: 100%;
+	    max-height: 60vh;
+	    object-fit: contain;
+	    margin-bottom: 20px;
+	}
+
+
+	#preview-title {
+	    color: #ff0000;
+	    font-family: monospace;; 
+	    font-size: 14px;
+	    font-weight: bold;
+	    word-break: break-all;
+	    margin-bottom: 10px;
+	}
+
+	#preview-link {
+	    color: #0066cc;
+	    font-family: monospace; 
+	    font-size: 14px;
+	    font-weight: bold;
+	    word-break: break-all;
+	    margin-bottom: 10px;
+	}
+
+
+	#default-content {
+	    padding: 20px;
+	    color: white;
+	    font-family: monospace;
+	}
+
+
+
+
+	#pdf-viewer {
+	    width: 100%;
+	    height: 500px;
+	    border: none;
+	    margin-top: 15px;
+	    display: none;
+	}
+details {
+    max-width: 500px;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+
+.controls-details {
+    margin-top: 10px;
+    line-height: 1.5;
+    max-height: 700px;
+    overflow-y: auto;
+    padding-right: 10px;
+    text-align: left;
+}
+
+.controls-details p {
+    margin-bottom: 15px;
+}
+
+
+
+
+
+    </style>
+</head>
+<body>
+
+		<div id="game-container"></div>
+
+
+<div id="image-preview">
+    <img id="preview-image" alt="Preview" />
+    <div id="preview-title"></div>
+    <div id="preview-link"></div>
+    <object id="pdf-viewer" type="application/pdf" width="100%" height="70vh" style="display: none;"></object>
+    <iframe id="pdf-iframe" style="display: none; width: 100%; height: 70vh; border: none;"></iframe>
+    <div id="default-content"></div>
+</div>
+    <div id='logo_container'>
+        <span id='logo_title'>ArchiGrad</span>
+        <span id='logo_names'>Deniz Guvendi & Joris Putteneers</span>
+    </div>
+
+
+ <div id='parade_container'>
+        <span id='parade_title'>PARADE 2025 simulator</span>
+
+    </div>
+
+
+
+
+
+
+    <div id="studentimage-container">
+        <div class="studentimage"></div>
+    </div>
+
+    <div id="controls-help">
+    <span>WASD</span> |  <span>F</span> |  <span>SPACE</span> |  <span>W+S</span> |  <span>ENTER: Open PDF</span>    
+
+ <details>
+        <summary>more info</summary>
+        <div class="controls-details">
+            <p>agency<br>
+            In this edition of parade we will use sorting as a autonomous tool for curation. Taking inspiration from the sorting and distributing algorithms used in mass production and manufacturing (amazon, shopee, google, etc) The agency of this edition's sorting algorithms is to somehow structure, visualize prioritize or reveal hidden patterns in the extensive INDA dataset of 2024 and 2025.</p>
+            
+            <p>design<br>
+            The exhibition space is designed with low to medium-height slanted tables, where sorted student work will be showcased. The presentation will take on various visual formats, emphasizing the collective and quantitative nature of the work.
+            The layout is accessible from both entrances of the building, naturally guiding visitors through the exhibition.
+            The installation will feature a large LED wall, interactive games incorporating student work, and more than 1,500 sorted images and scale models, arranged in ways that reveal hidden relationships between the works.</p>
+            
+            <p>Program<br>
+            8 review spaces<br>
+            1 Cafeteria space<br>
+            1 preparation/gathering table<br>
+            Exhibition Space Containing<br>
+            INDA PARADE Stand, Parade promotion material, Booklets Sem 1-2<br>
+            Year 1-2-3-4, DTS, DEX, DB/DCC Summer Projects, Entech<br>
+            Alumni + architecture office stands<br>
+            Gamewall containing 3 games<br>
+            1 keynote and lecture space and Pecha Kucha presentation space<br>
+            Year 4 curated exhibition<br>
+            1 room for INDA office</p>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+            <img src="parade_images/parade_7.JPG" alt="Parade Exhibition 7" style="max-width: 512px; height: auto;">
+            <img src="parade_images/parade_1.JPG" alt="Parade Exhibition 1" style="max-width: 512px; height: auto;">
+            <img src="parade_images/parade_3.JPG" alt="Parade Exhibition 3" style="max-width: 512px; height: auto;">
+            <img src="parade_images/parade_4.JPG" alt="Parade Exhibition 4" style="max-width: 512px; height: auto;">
+            <img src="parade_images/parade_5.JPG" alt="Parade Exhibition 5" style="max-width: 512px; height: auto;">
+            <img src="parade_images/parade_6.JPG" alt="Parade Exhibition 6" style="max-width: 512px; height: auto;">
+        </div>
+
+
+
+        </div>
+    </details>
+
+</div>
+
+    <div id="loading-info" class="loading-info">Loading...</div>
+
+
+
+<script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+        import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/loaders/GLTFLoader.js";
+
+        const CONFIG = {
+
+            backgroundColor: '#000000',        // Background color
+
+            tableThickness: 0.018,
+            frameThickness: 0.018,
+            frameOffset: -0.005,
+            loadingDelay: 1,
+	    batchSize: 100,
+            
+            playerSize: 0.8,
+            playerHeight: 0.9,
+            playerRadius: 0.4,
+            headSphereSize: 20,
+            headSphereOpacity: 1.0,
+            playerLineWidth: 6,
+            
+            moveSpeed: 0.03,
+            rotateSpeed: 0.03,
+            gravity: 0.01,
+            jumpForce: 0.2,
+            
+            firstPersonHeight: 1.3,
+            firstPersonDistance: 0.0,
+            firstPersonTilt: 0.5,
+            normalCameraHeight: 7,
+            normalCameraDistance: 12,
+            topViewHeight: 20,
+            topViewDistance: 10,
+            
+            trailPointSize: 0.1,
+            trailOpacity: 0.7,
+            trailInterval: 5,
+            maxTrailPoints: 500,
+            
+            brickColor: '#828282',
+            tableColor: '#828282',
+            frameColor: 'red',
+
+        	ledPositionX: 12,
+       		ledPositionY: 1,
+       		ledPositionZ: 6,
+
+        	boxPositionX: 12,
+       		boxPositionY: 1,
+       		boxPositionZ: 6.25,
+
+       		boxWidth: 6,
+       		boxHeight: 2.0,
+       		boxDepth: 0.2,
+       		boxColor: '#333333',
+	    ledAnimationEnabled: true,         // Enable/disable LED animation 
+            ledWidth: 6,
+            ledHeight: 2,
+            ledFrameCount: 1,
+            ledFps: 0,
+            
+imageTitleColor: 'red',
+imageLinkColor: 'blue',
+spriteWidth: 600,
+spriteHeight: 128,
+spriteFontSize: 20,
+spriteFontFamily: 'monospace',
+spriteBackgroundColor: 'rgba(0, 0, 0,0)',
+spriteScaleX: 2,
+spriteScaleY: 0.5,
+spriteTitleOffsetY: 1.5,
+spriteLinkOffsetY: 1.6,
+imageProximity: 1.3,
+imageHighlightColor: '#4286f4',    // Color for highlighted images (blue)
+currentHighlightedColor: 'red',
+collisionEnabled: false,
+collisionDistance: 0.2,
+
+
+            spawnAreaMinX: 0,
+            spawnAreaMaxX: 25,
+            spawnAreaMinZ: 0,
+            spawnAreaMaxZ: 15
+        };
+
+        async function loadJSON(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load ${url}`);
+            return response.json();
+        }
+
+        function loadGLTF(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new GLTFLoader();
+                loader.load(url, (gltf) => resolve(gltf), 
+                    (xhr) => {
+                        const percent = (xhr.loaded / xhr.total) * 100;
+                        document.getElementById('loading-info').textContent = `Loading model: ${Math.round(percent)}%`;
+                    },
+                    (error) => reject(error)
+                );
+            });
+        }
+
+        class MaterialManager {
+            constructor() {
+                this.materials = {};
+                this.textures = {};
+                this.textureLoader = new THREE.TextureLoader();
+            }
+
+            getStandardMaterial(key, parameters) {
+                const materialKey = `standard-${key}`;
+                if (!this.materials[materialKey]) this.materials[materialKey] = new THREE.MeshStandardMaterial(parameters);
+                return this.materials[materialKey];
+            }
+
+            getBasicMaterial(key, parameters) {
+                const materialKey = `basic-${key}`;
+                if (!this.materials[materialKey]) this.materials[materialKey] = new THREE.MeshBasicMaterial(parameters);
+                return this.materials[materialKey];
+            }
+
+            loadTexture(url) {
+                if (!this.textures[url]) {
+                    this.textures[url] = this.textureLoader.load(url, (texture) => {
+                        texture.minFilter = THREE.NearestMipMapNearestFilter;
+                        texture.magFilter = THREE.NearestFilter;
+                    });
+                }
+                return this.textures[url];
+            }
+
+            getTexturedMaterial(url) {
+                const texture = this.loadTexture(url);
+                return this.getBasicMaterial(`texture-${url}`, { map: texture, side: THREE.FrontSide });
+            }
+        }
+
+        class SingleplayerGame {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(CONFIG.backgroundColor);
+
+                this.camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: false });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio * 1);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+               
+		document.getElementById('game-container').appendChild(this.renderer.domElement);
+
+
+ 
+                this.setupPerformanceMonitor();
+                this.materialManager = new MaterialManager();
+                
+                this.brickMaterial = this.materialManager.getStandardMaterial('brick', { 
+                    color: CONFIG.brickColor, roughness: 0.8, metalness: 0.1, flatShading: true
+                });
+
+                this.tableMaterial = this.materialManager.getStandardMaterial('table', { 
+                    color: CONFIG.tableColor, roughness: 0.6, metalness: 0.1, flatShading: true
+                });
+
+                this.frameMaterial = this.materialManager.getStandardMaterial('frame', { 
+                    color: CONFIG.frameColor, roughness: 0.4, metalness: 0.3, flatShading: true
+                });
+
+                this.matrix = new THREE.Matrix4();
+                this.position = new THREE.Vector3();
+                this.quaternion = new THREE.Quaternion();
+                this.scale = new THREE.Vector3(1, 1, 1);
+                this.right = new THREE.Vector3();
+                this.normal = new THREE.Vector3();
+                this.up = new THREE.Vector3();
+                
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(1, 2, 1).normalize();
+                this.scene.add(directionalLight);
+
+                const gridHelper = new THREE.GridHelper(100, 100, 0x222222, 0x222222);
+                this.scene.add(gridHelper);
+
+                this.mixer = null;
+                this.clock = new THREE.Clock();
+                this.animations = {
+                    idle: null, walking: null, emote: null, angry: null, aim: null,
+                    boxing: null, clapping: null, dismiss: null, jump: null
+                };
+                this.currentAction = null;
+                this.animationState = 'idle';
+                this.isMoving = false;
+                this.playerDirection = new THREE.Vector3(0, 0, -1);
+                this.jumpVelocity = 0;
+                this.isJumping = false;
+                
+                this.cameraMode = 0; // 0: normal, 1: first-person, 2: top view
+                this.cameraHeight = CONFIG.normalCameraHeight;
+                this.cameraDistance = CONFIG.normalCameraDistance;
+
+                this.playerColor = this.getRandomColor();
+                this.imageMeshes = [];
+		
+
+		this.collisionObjects = [];
+		this.hitboxGeometry = null;
+
+
+		
+		// Update the linkInfoElement style in the constructor
+			
+		this.titleSprite = null;
+		this.linkSprite = null;
+		this.currentHighlightedImage = null;
+		this.currentLink = null;
+
+
+
+                this.trail = {
+                    points: [],
+                    pointsObject: null,
+                    material: new THREE.PointsMaterial({ 
+                        color: this.playerColor, size: CONFIG.trailPointSize,
+                        sizeAttenuation: true, opacity: CONFIG.trailOpacity, transparent: true
+                    }),
+                    frameCounter: 0
+                };
+
+                this.spawnArea = {
+                    minX: CONFIG.spawnAreaMinX, maxX: CONFIG.spawnAreaMaxX,
+                    minZ: CONFIG.spawnAreaMinZ, maxZ: CONFIG.spawnAreaMaxZ
+                };
+                
+                this.worldBounds = {
+                    minX: -50, maxX: 50,
+                    minZ: -50, maxZ: 50
+                };
+
+                this.initWorld().then(() => {
+                    const spawnPos = this.getRandomSpawnPosition();
+                    this.loadPlayerModels(spawnPos);
+                    this.setupMovement();
+                    this.animate();
+                });
+		
+		this.loadDefaultSideContent();
+
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+		loadHitboxGeometry() {
+		    const loader = new GLTFLoader();
+		    
+		    return new Promise((resolve, reject) => {
+			loader.load('./hitbox.glb', (gltf) => {
+			    let geometry = null;
+			    
+			    gltf.scene.traverse((child) => {
+				if (child.isMesh && child.geometry) {
+				    geometry = child.geometry;
+				}
+			    });
+			    
+			    if (geometry) {
+				this.hitboxGeometry = geometry;
+				resolve(geometry);
+			    } else {
+				reject(new Error("No geometry found in hitbox model"));
+			    }
+			}, undefined, reject);
+		    });
+		}
+
+
+	
+
+
+		checkCollision(position) {
+		    if (!CONFIG.collisionEnabled || this.collisionObjects.length === 0) return false;
+		    
+		    // Create a position copy that includes current Y position for accurate 3D collision
+		    const posWithY = position.clone();
+		    posWithY.y = this.localPlayer.position.y;
+		    
+		    // If jumping, check if we'd collide with the top of objects
+		    if (this.isJumping || this.localPlayer.position.y > 0) {
+			// Calculate where the player would be after this jump
+			const nextY = this.localPlayer.position.y + this.jumpVelocity;
+			
+			// If player is falling down (negative velocity)
+			if (this.jumpVelocity < 0) {
+			    for (const object of this.collisionObjects) {
+				if (!object.parent) continue;
+				
+				// Check horizontal distance
+				const horizontalDist = new THREE.Vector2(
+				    position.x - object.position.x,
+				    position.z - object.position.z
+				).length();
+				
+				// If we're above an object and would fall into it
+				if (horizontalDist < CONFIG.playerRadius + CONFIG.collisionDistance && 
+				    this.localPlayer.position.y > object.position.y + CONFIG.tableThickness &&
+				    nextY < object.position.y + CONFIG.tableThickness) {
+				    // Stop at the table top
+				    this.localPlayer.position.y = object.position.y + CONFIG.tableThickness;
+				    this.jumpVelocity = 0;
+				    this.isJumping = false;
+				    return false; // Allow horizontal movement
+				}
+			    }
+			}
+		    }
+		    
+		    // Normal horizontal collision check
+		    for (const object of this.collisionObjects) {
+			if (!object.parent) continue;
+			const distance = posWithY.distanceTo(object.position);
+			if (distance < CONFIG.playerRadius + CONFIG.collisionDistance) {
+			    return true;
+			}
+		    }
+		    
+		    return false;
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	loadDefaultSideContent() {
+	    const defaultContent = document.getElementById('default-content');
+	    
+	    fetch('sidebar-content.html')
+		.then(response => {
+		    if (!response.ok) {
+			throw new Error('Network response was not ok');
+		    }
+		    return response.text();
+		})
+		.then(html => {
+		    defaultContent.innerHTML = html;
+		})
+		.catch(error => {
+		    defaultContent.innerHTML = '<h3>Welcome to ArchiGrad</h3><p>Move close to an image to see details.</p>';
+		});
+	}
+
+
+
+            setupPerformanceMonitor() {
+                //this.stats = new Stats();
+                //this.stats.showPanel(0);
+                //this.stats.dom.style.position = 'absolute';
+                //this.stats.dom.style.left = '0px';
+                //this.stats.dom.style.top = '0px';
+                //document.body.appendChild(this.stats.dom);
+
+                //this.statsMemory = new Stats();
+                //this.statsMemory.showPanel(2);
+                //this.statsMemory.dom.style.position = 'absolute';
+                //this.statsMemory.dom.style.left = '80px';
+                //this.statsMemory.dom.style.top = '0px';
+                //document.body.appendChild(this.statsMemory.dom);
+            }
+
+           async initWorld() {  
+		    try {
+			// Load JSON data first
+			const [brickData, tableData, frameData, imageData] = await Promise.all([
+			    loadJSON('bricks.json'),
+			    loadJSON('tables.json'),
+			    loadJSON('frames.json'),
+			    loadJSON('images.json')
+			]);
+			
+			// Load models
+			const brickModel = await loadGLTF('./brick_instance.glb');
+			
+			// Load hitbox if collision is enabled
+			if (CONFIG.collisionEnabled) {
+			    try {
+				await this.loadHitboxGeometry();
+				console.log("Hitbox loaded successfully");
+			    } catch (error) {
+				console.error("Failed to load hitbox:", error);
+				CONFIG.collisionEnabled = false;
+			    }
+			}                    
+
+                    let totalBricks = brickData.bricks.length;
+                    let totalTables = tableData.tables.length;
+                    let totalFrames = frameData.frames.length;
+                    let totalImages = imageData.images.length;
+                    let loadedBricks = 0, loadedTables = 0, loadedFrames = 0, loadedImages = 0;
+                    
+                    const updateLoadingInfo = () => {
+                        document.getElementById('loading-info').textContent = `${loadedBricks}/${totalBricks} bricks, ${loadedTables}/${totalTables} tables, ${loadedFrames}/${totalFrames} frames, ${loadedImages}/${totalImages} images`;
+                    };
+                    
+                    updateLoadingInfo();
+                    
+                    let brickGeometry = null;
+                    brickModel.scene.traverse((child) => {
+                        if (child.isMesh && child.geometry && !brickGeometry) brickGeometry = child.geometry.clone();
+                    });
+                    
+                    if (!brickGeometry) throw new Error("Could not extract brick geometry from model");
+                    
+                    const tableGeometry = new THREE.BoxGeometry(1, CONFIG.tableThickness, 1);
+                    tableGeometry.translate(0, -CONFIG.tableThickness/2, 0);
+                    
+                    const frameGeometry = new THREE.BoxGeometry(1, CONFIG.frameThickness, 1);
+                    frameGeometry.translate(0, -CONFIG.frameThickness/2, 0);
+                    
+                    const brickInstancedMesh = new THREE.InstancedMesh(brickGeometry, this.brickMaterial, totalBricks);
+                    const tableInstancedMesh = new THREE.InstancedMesh(tableGeometry, this.tableMaterial, totalTables);
+                    const frameInstancedMesh = new THREE.InstancedMesh(frameGeometry, this.frameMaterial, totalFrames);
+                    
+                    this.scene.add(brickInstancedMesh);
+                    this.scene.add(tableInstancedMesh);
+                    this.scene.add(frameInstancedMesh);
+                    
+                    // Process bricks
+                    let brickProcessedCount = 0;
+                    const processBrickBatch = () => {
+                        const startIdx = brickProcessedCount;
+                        const endIdx = Math.min(startIdx + CONFIG.batchSize, brickData.bricks.length);
+                        
+                        for (let i = startIdx; i < endIdx; i++) {
+                            const brick = brickData.bricks[i];
+                            this.position.fromArray(brick.position);
+                            this.normal.fromArray(brick.normal).negate();
+                            this.up.fromArray(brick.up);
+                            this.right.crossVectors(this.up, this.normal).normalize();
+                            this.up.crossVectors(this.normal, this.right).normalize();
+                            const rotationMatrix = new THREE.Matrix4().makeBasis(this.right, this.up, this.normal);
+                            this.quaternion.setFromRotationMatrix(rotationMatrix);
+                            this.scale.set(1, 1, 1);
+                            this.matrix.compose(this.position, this.quaternion, this.scale);
+                            brickInstancedMesh.setMatrixAt(i, this.matrix);
+                            loadedBricks++;
+                        }
+                        
+                        brickInstancedMesh.instanceMatrix.needsUpdate = true;
+                        updateLoadingInfo();
+                        
+                        brickProcessedCount = endIdx;
+                        if (brickProcessedCount < brickData.bricks.length) {
+                            setTimeout(processBrickBatch, CONFIG.loadingDelay);
+                        }
+                    };
+                    
+                    // Process tables
+                    
+
+		let tableProcessedCount = 0;
+		const processTableBatch = () => {
+		    const startIdx = tableProcessedCount;
+		    const endIdx = Math.min(startIdx + CONFIG.batchSize, tableData.tables.length);
+		    
+		    for (let i = startIdx; i < endIdx; i++) {
+			const table = tableData.tables[i];
+			this.position.fromArray(table.position);
+			this.quaternion.identity();
+			this.scale.set(1, 1, 1);
+			this.matrix.compose(this.position, this.quaternion, this.scale);
+			tableInstancedMesh.setMatrixAt(i, this.matrix);
+			
+			// Create collision object for this table
+			if (CONFIG.collisionEnabled && this.hitboxGeometry) {
+			    const hitboxMesh = new THREE.Mesh(
+				this.hitboxGeometry,
+				new THREE.MeshBasicMaterial({ visible: false })
+			    );
+			    hitboxMesh.position.copy(this.position);
+			    this.scene.add(hitboxMesh);
+			    this.collisionObjects.push(hitboxMesh);
+			}
+			
+			loadedTables++;
+		    }
+		    
+		    tableInstancedMesh.instanceMatrix.needsUpdate = true;
+		    updateLoadingInfo();
+		    
+		    tableProcessedCount = endIdx;
+		    if (tableProcessedCount < tableData.tables.length) {
+			setTimeout(processTableBatch, CONFIG.loadingDelay);
+		    }
+		};
+
+
+
+                    
+                    // Process frames
+                    let frameProcessedCount = 0;
+                    const processFrameBatch = () => {
+                        const startIdx = frameProcessedCount;
+                        const endIdx = Math.min(startIdx + CONFIG.batchSize, frameData.frames.length);
+                        
+                        for (let i = startIdx; i < endIdx; i++) {
+                            const frame = frameData.frames[i];
+                            this.position.fromArray(frame.position);
+                            this.position.y += CONFIG.tableThickness + CONFIG.frameThickness/2 + CONFIG.frameOffset;
+                            this.quaternion.identity();
+                            const pointScale = frame.pscale || 0.5;
+                            this.scale.set(pointScale, 1, pointScale);
+                            this.matrix.compose(this.position, this.quaternion, this.scale);
+                            frameInstancedMesh.setMatrixAt(i, this.matrix);
+                            loadedFrames++;
+                        }
+                        
+                        frameInstancedMesh.instanceMatrix.needsUpdate = true;
+                        updateLoadingInfo();
+                        
+                        frameProcessedCount = endIdx;
+                        if (frameProcessedCount < frameData.frames.length) {
+                            setTimeout(processFrameBatch, CONFIG.loadingDelay);
+                        }
+                    };
+                   
+
+		if (CONFIG.collisionEnabled) {
+		    // Check if hitbox is already loaded
+		    if (this.hitboxGeometry) {
+			// Hitbox already loaded, proceed with processing
+			processBrickBatch();
+			processTableBatch();
+			processFrameBatch();
+		    } else {
+			// Need to load hitbox first
+			this.loadHitboxGeometry()
+			    .then(() => {
+				console.log("Hitbox loaded, starting batch processing");
+				processBrickBatch();
+				processTableBatch();
+				processFrameBatch();
+			    })
+			    .catch(error => {
+				console.error("Failed to load hitbox, proceeding without collision:", error);
+				CONFIG.collisionEnabled = false;
+				processBrickBatch();
+				processTableBatch();
+				processFrameBatch();
+			    });
+		    }
+		} else {
+		    // No collision needed, proceed normally
+		    processBrickBatch();
+		    processTableBatch();
+		    processFrameBatch();
+		}
+
+ 
+                    // Process images
+                    const imagesByTexture = {};
+                    for (const image of imageData.images) {
+                        if (!image.name) continue;
+                        if (!imagesByTexture[image.name]) imagesByTexture[image.name] = [];
+                        imagesByTexture[image.name].push(image);
+                    }
+                    
+                    for (const textureName of Object.keys(imagesByTexture)) {
+                        const textureImages = imagesByTexture[textureName];
+                        const texturePath = `./images/${textureName}`;
+                        const imageGeometry = new THREE.PlaneGeometry(1, 1);
+                        const uvs = imageGeometry.attributes.uv;
+                        for (let i = 0; i < uvs.count; i++) uvs.setX(i, 1 - uvs.getX(i));
+                        uvs.needsUpdate = true;
+                        
+                        try {
+                            const material = this.materialManager.getTexturedMaterial(texturePath);
+                            let imageProcessedCount = 0;
+                            
+                            const processImageBatch = () => {
+                                const startIdx = imageProcessedCount;
+                                const endIdx = Math.min(startIdx + CONFIG.batchSize, textureImages.length);
+                                
+                                for (let i = startIdx; i < endIdx; i++) {
+                                    const image = textureImages[i];
+                                    const imageObject = new THREE.Object3D();
+                                    this.scene.add(imageObject);
+                                    const imageMesh = new THREE.Mesh(imageGeometry, material);
+                                    imageMesh.rotation.x = -Math.PI / 2;
+                                    imageObject.add(imageMesh);
+                                    this.position.fromArray(image.position);
+                                    this.position.y += CONFIG.tableThickness + 0.005;
+                                    imageObject.position.copy(this.position);
+                                    this.normal.fromArray(image.normal);
+                                    this.up.fromArray(image.up);
+                                    this.right.crossVectors(this.up, this.normal).normalize();
+                                    this.up.crossVectors(this.normal, this.right).normalize();
+                                    const rotationMatrix = new THREE.Matrix4().makeBasis(this.right, this.up, this.normal);
+                                    imageObject.setRotationFromMatrix(rotationMatrix);
+                                    const pointScale = image.pscale || 0.5;
+                                    imageMesh.scale.set(pointScale, pointScale, 1);
+                                   
+
+				// Store image name (texture name)
+				imageMesh.userData.name = textureName;
+
+				if (image.link) {
+				    imageMesh.userData.link = './images/' + image.link;
+				    this.imageMeshes.push(imageMesh);
+				}
+
+
+                                    
+                                    loadedImages++;
+                                }
+                                
+                                updateLoadingInfo();
+                                
+                                imageProcessedCount = endIdx;
+                                if (imageProcessedCount < textureImages.length) {
+                                    setTimeout(processImageBatch, CONFIG.loadingDelay);
+                                }
+                            };
+                            
+                            processImageBatch();
+                        } catch (error) {
+                            console.error(`Error processing texture ${textureName}:`, error);
+                        }
+                    }
+                    
+                    // Create LED display
+                  
+
+		// Create LED display
+		const ledGeometry = new THREE.PlaneGeometry(CONFIG.ledWidth, CONFIG.ledHeight);
+		const clock = new THREE.Clock();
+
+		// Create box for the LED screen
+		const boxGeometry = new THREE.BoxGeometry(CONFIG.boxWidth, CONFIG.boxHeight, CONFIG.boxDepth);
+		const boxMaterial = new THREE.MeshStandardMaterial({
+		    color: CONFIG.boxColor,
+		    roughness: 0.7,
+		    metalness: 0.3
+		});
+		const ledBox = new THREE.Mesh(boxGeometry, boxMaterial);
+		ledBox.position.set(CONFIG.boxPositionX, CONFIG.boxPositionY, CONFIG.boxPositionZ);
+		this.scene.add(ledBox);
+
+		new THREE.TextureLoader().load('./led/led.png', texture => {
+		    texture.magFilter = THREE.NearestFilter;
+		    texture.minFilter = THREE.NearestFilter;
+		    
+		    const material = new THREE.MeshBasicMaterial({
+			map: texture, 
+			side: THREE.FrontSide
+		    });
+		    
+		    const led = new THREE.Mesh(ledGeometry, material);
+		    
+		    // Position the LED slightly in front of the box
+		    led.position.set(CONFIG.ledPositionX, CONFIG.ledPositionY, CONFIG.ledPositionZ + (CONFIG.boxDepth/2) + 0.01);
+		    
+		    // Rotate 180 degrees around the vertical (Y) axis
+		    led.rotation.y = Math.PI;
+		    
+		    this.scene.add(led);
+
+
+
+ 
+		});
+
+
+
+
+
+                } catch (error) {
+                    console.error("Error initializing world:", error);
+                    document.getElementById('loading-info').textContent = "Error initializing world. Check console.";
+                }
+            }
+
+            getRandomColor() {
+                const colors = [   0xff0000, 0x0000ff ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+
+		// Add this new method right after it:
+	
+
+		createSpriteText(text, color) {
+		    const canvas = document.createElement('canvas');
+		    const context = canvas.getContext('2d');
+		    canvas.width = CONFIG.spriteWidth;
+		    canvas.height = CONFIG.spriteHeight;
+		    
+		    context.fillStyle = CONFIG.spriteBackgroundColor;
+		    context.fillRect(0, 0, canvas.width, canvas.height);
+		    
+		    context.font = `Bold ${CONFIG.spriteFontSize}px ${CONFIG.spriteFontFamily}`;
+		    context.textAlign = 'center';
+		    context.textBaseline = 'middle';
+		    context.fillStyle = color;
+		    context.fillText(text, canvas.width / 2, canvas.height / 2);
+		    
+		    const texture = new THREE.CanvasTexture(canvas);
+		    const material = new THREE.SpriteMaterial({ map: texture });
+		    const sprite = new THREE.Sprite(material);
+		    sprite.scale.set(CONFIG.spriteScaleX, CONFIG.spriteScaleY, 1);
+		    
+		    return sprite;
+		}
+
+	
+            toggleCameraView() {
+                this.cameraMode = (this.cameraMode + 1) % 3;
+                
+                switch(this.cameraMode) {
+                    case 0: // Normal third person
+                        this.cameraHeight = CONFIG.normalCameraHeight;
+                        this.cameraDistance = CONFIG.normalCameraDistance;
+                        break;
+                    case 1: // First person
+                        this.cameraHeight = CONFIG.firstPersonHeight;
+                        this.cameraDistance = CONFIG.firstPersonDistance;
+                        break;
+                    case 2: // Top view
+                        this.cameraHeight = CONFIG.topViewHeight;
+                        this.cameraDistance = CONFIG.topViewDistance;
+                        break;
+                }
+            }
+
+            loadPlayerModels(spawnPos) {
+                const loader = new GLTFLoader();
+                
+                loader.load('idle.glb', (gltf) => {
+                    this.localPlayer = gltf.scene;
+                    this.localPlayer.scale.set(CONFIG.playerSize, CONFIG.playerSize, CONFIG.playerSize);
+                    this.localPlayer.position.copy(spawnPos);
+                    this.scene.add(this.localPlayer);
+                    
+                    this.mixer = new THREE.AnimationMixer(this.localPlayer);
+                    
+                    if (gltf.animations && gltf.animations.length > 0) {
+                        this.animations.idle = this.mixer.clipAction(gltf.animations[0]);
+                    }
+                    
+                    this.createSkeletonHelper();
+                    this.addHeadSphere();
+                    this.setAnimation('idle');
+                    
+                    loader.load('walking.glb', (walkGltf) => {
+                        if (walkGltf.animations && walkGltf.animations.length > 0) {
+                            this.animations.walking = this.mixer.clipAction(walkGltf.animations[0]);
+                        }
+                        
+                        loader.load('emote.glb', (emoteGltf) => {
+                            if (emoteGltf.animations && emoteGltf.animations.length > 0) {
+                                this.animations.emote = this.mixer.clipAction(emoteGltf.animations[0]);
+                            }
+
+                            loader.load('angry.glb', (angryGltf) => {
+                                if (angryGltf.animations && angryGltf.animations.length > 0) {
+                                    this.animations.angry = this.mixer.clipAction(angryGltf.animations[0]);
+                                }
+                                
+                                loader.load('aim.glb', (aimGltf) => {
+                                    if (aimGltf.animations && aimGltf.animations.length > 0) {
+                                        this.animations.aim = this.mixer.clipAction(aimGltf.animations[0]);
+                                    }
+                                    
+                                    loader.load('boxing.glb', (boxingGltf) => {
+                                        if (boxingGltf.animations && boxingGltf.animations.length > 0) {
+                                            this.animations.boxing = this.mixer.clipAction(boxingGltf.animations[0]);
+                                        }
+                                        
+                                        loader.load('clapping.glb', (clappingGltf) => {
+                                            if (clappingGltf.animations && clappingGltf.animations.length > 0) {
+                                                this.animations.clapping = this.mixer.clipAction(clappingGltf.animations[0]);
+                                            }
+                                            
+                                            loader.load('dismiss.glb', (dismissGltf) => {
+                                                if (dismissGltf.animations && dismissGltf.animations.length > 0) {
+                                                    this.animations.dismiss = this.mixer.clipAction(dismissGltf.animations[0]);
+                                                }
+                                                
+                                                loader.load('jump2.glb', (jumpGltf) => {
+                                                    if (jumpGltf.animations && jumpGltf.animations.length > 0) {
+                                                        this.animations.jump = this.mixer.clipAction(jumpGltf.animations[0]);
+                                                    }
+                                                });
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            }
+            
+            addHeadSphere() {
+                const sphereGeometry = new THREE.SphereGeometry(CONFIG.headSphereSize, 16, 16);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ 
+                    color: this.playerColor, transparent: true, opacity: CONFIG.headSphereOpacity
+                });
+                this.headSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                
+                let headBone = null;
+                this.localPlayer.traverse((object) => {
+                    if (object.isBone) {
+                        const name = object.name.toLowerCase();
+                        if (name.includes('head') || name.includes('skull') || name.includes('face')) headBone = object;
+                    }
+                });
+                
+                if (headBone) headBone.add(this.headSphere);
+            }
+
+            createSkeletonHelper() {
+                this.skeletonHelper = null;
+                
+                this.localPlayer.traverse((child) => {
+                    if (child.isMesh) {
+                        if (child.skeleton && !this.skeletonHelper) {
+                            this.skeletonHelper = new THREE.SkeletonHelper(this.localPlayer);
+                            this.skeletonHelper.material = new THREE.LineBasicMaterial({
+                                color: this.playerColor, linewidth: CONFIG.playerLineWidth,
+                                depthTest: true, transparent: true, opacity: 1
+                            });
+                            this.scene.add(this.skeletonHelper);
+                        }
+                        child.visible = false;
+                    }
+                });
+            }
+
+            setAnimation(name, duration = 0.1) {
+                if (!this.animations[name] || !this.mixer || this.animationState === name) return;
+                
+                this.animationState = name;
+                const newAction = this.animations[name];
+                const oldAction = this.currentAction;
+                
+                const oneShots = ['emote', 'angry', 'aim', 'boxing', 'clapping', 'dismiss', 'jump'];
+                if (oneShots.includes(name)) {
+                    newAction.setLoop(THREE.LoopOnce);
+                    newAction.clampWhenFinished = true;
+                } else {
+                    newAction.setLoop(THREE.LoopRepeat);
+                }
+                
+                newAction.reset();
+                newAction.setEffectiveWeight(1);
+                newAction.fadeIn(duration);
+                newAction.play();
+                
+                if (oldAction) oldAction.fadeOut(duration);
+                this.currentAction = newAction;
+                
+                if (oneShots.includes(name)) {
+                    const animLength = this.animations[name]._clip.duration * 1000;
+                    setTimeout(() => {
+                        if (this.isMoving) this.setAnimation('walking');
+                        else this.setAnimation('idle');
+                    }, animLength);
+                }
+            }
+
+            getRandomSpawnPosition() {
+                return {
+                    x: Math.random() * (this.spawnArea.maxX - this.spawnArea.minX) + this.spawnArea.minX,
+                    y: 0,
+                    z: Math.random() * (this.spawnArea.maxZ - this.spawnArea.minZ) + this.spawnArea.minZ
+                };
+            }
+
+
+
+
+
+setupMovement() {
+    this.keys = {};
+    this.moveSpeed = CONFIG.moveSpeed;
+    this.rotateSpeed = CONFIG.rotateSpeed;
+
+    window.addEventListener('keydown', (e) => {
+        this.keys[e.code] = true;
+        
+        // Handle jump
+        if ((e.code === 'Space' ) && !this.isJumping && e.repeat === false) {
+            this.isJumping = true;
+            this.jumpVelocity = CONFIG.jumpForce;
+            
+            if (this.animations.jump) {
+                const jumpClip = this.animations.jump._clip;
+                this.jumpAnimationDuration = jumpClip.duration * 1000;
+                this.jumpStartTime = Date.now();
+                this.setAnimation('jump');
+            }
+        }
+
+        // Random animation
+        if (e.code === 'KeyF' && e.repeat === false) {
+            const animations = ['angry', 'aim', 'clapping', 'dismiss', 'emote'];
+            const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+            this.setAnimation(randomAnimation);
+        }
+        
+        // PDF viewer
+        if (e.code === 'Enter') {
+            if (this.currentLink) {
+                console.log("Loading PDF:", this.currentLink);
+                
+                // Try both object and iframe for maximum compatibility
+                const pdfViewer = document.getElementById('pdf-viewer');
+                const pdfIframe = document.getElementById('pdf-iframe');
+                
+                pdfViewer.data = this.currentLink;
+                pdfIframe.src = this.currentLink;
+                
+                // Show both (one will work depending on browser)
+                pdfViewer.style.display = 'block';
+                pdfIframe.style.display = 'block';
+                
+                // Hide other elements
+                document.getElementById('preview-image').style.display = 'none';
+                document.getElementById('preview-title').style.display = 'none';
+                document.getElementById('preview-link').style.display = 'none';
+                document.getElementById('default-content').style.display = 'none';
+                
+                // Make sure parent container is visible
+                document.getElementById('image-preview').style.display = 'block';
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        this.keys[e.code] = false;
+    });
+
+    this.moveHandler = () => {
+        if (!this.localPlayer) return;
+        
+        let moved = false;
+        
+        // Handle jumping
+        if (this.isJumping || this.localPlayer.position.y > 0) {
+            const originalY = this.localPlayer.position.y;
+            const nextY = originalY + this.jumpVelocity;
+            this.localPlayer.position.y = nextY;
+            this.jumpVelocity -= CONFIG.gravity;
+            
+            if (this.localPlayer.position.y <= 0) {
+                this.localPlayer.position.y = 0;
+                this.isJumping = false;
+                this.jumpVelocity = 0;
+                
+                if (this.isMoving) this.setAnimation('walking');
+                else this.setAnimation('idle');
+            }
+            
+            moved = true;
+        }
+        
+        // Turning left/right with A/D or Arrow Left/Right
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) {
+            this.playerDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotateSpeed);
+            moved = true;
+        }
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) {
+            this.playerDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), -this.rotateSpeed);
+            moved = true;
+        }
+        
+        let isMovingFB = false;
+        
+        // Forward movement with W or Arrow Up
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) {
+            const moveDirection = this.playerDirection.clone().normalize();
+            const newPosition = this.localPlayer.position.clone();
+            newPosition.add(moveDirection.multiplyScalar(this.moveSpeed));
+            
+            // Check for collisions
+            if (this.checkCollision(newPosition)) {
+                // Try sliding along X axis
+                const slideX = this.localPlayer.position.clone();
+                slideX.x = newPosition.x;
+                
+                // Try sliding along Z axis
+                const slideZ = this.localPlayer.position.clone();
+                slideZ.z = newPosition.z;
+                
+                // Choose the slide direction that works
+                if (!this.checkCollision(slideX)) {
+                    this.localPlayer.position.copy(slideX);
+                } else if (!this.checkCollision(slideZ)) {
+                    this.localPlayer.position.copy(slideZ);
+                }
+                // If neither works, we don't move
+            } else {
+                // No collision, move normally
+                this.localPlayer.position.copy(newPosition);
+            }
+            
+            moved = true;
+            isMovingFB = true;
+        }
+
+        // Backward movement with S or Arrow Down
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) {
+            const moveDirection = this.playerDirection.clone().normalize();
+            const newPosition = this.localPlayer.position.clone();
+            newPosition.sub(moveDirection.multiplyScalar(this.moveSpeed));
+            
+            // Check for collisions
+            if (this.checkCollision(newPosition)) {
+                // Try sliding along X axis
+                const slideX = this.localPlayer.position.clone();
+                slideX.x = newPosition.x;
+                
+                // Try sliding along Z axis
+                const slideZ = this.localPlayer.position.clone();
+                slideZ.z = newPosition.z;
+                
+                // Choose the slide direction that works
+                if (!this.checkCollision(slideX)) {
+                    this.localPlayer.position.copy(slideX);
+                } else if (!this.checkCollision(slideZ)) {
+                    this.localPlayer.position.copy(slideZ);
+                }
+                // If neither works, we don't move
+            } else {
+                // No collision, move normally
+                this.localPlayer.position.copy(newPosition);
+            }
+            
+            moved = true;
+            isMovingFB = true;
+        }
+        
+        // Toggle camera view with W+S
+        if (this.keys['KeyW'] && this.keys['KeyS']) {
+            if (!this.isTogglingCamera) {
+                this.isTogglingCamera = true;
+                this.toggleCameraView();
+            }
+        } else {
+            this.isTogglingCamera = false;
+        }
+        
+        // Animation state management
+        if (isMovingFB && this.animationState !== 'emote' && !this.isJumping) {
+            this.setAnimation('walking');
+        } else if (!isMovingFB && this.animationState === 'walking' && !this.isJumping) {
+            this.setAnimation('idle');
+        }
+        
+        this.isMoving = isMovingFB;
+        
+        // Handle camera position based on mode
+        switch(this.cameraMode) {
+            case 0: // Normal third person
+                const normalCameraOffset = this.playerDirection.clone().multiplyScalar(-this.cameraDistance);
+                normalCameraOffset.y = this.cameraHeight;
+                this.camera.position.copy(this.localPlayer.position).add(normalCameraOffset);
+                this.camera.lookAt(
+                    new THREE.Vector3(
+                        this.localPlayer.position.x,
+                        this.localPlayer.position.y + 1,
+                        this.localPlayer.position.z
+                    )
+                );
+                break;
+                
+            case 1: // First person
+                const firstPersonOffset = this.playerDirection.clone().multiplyScalar(this.cameraDistance);
+                firstPersonOffset.y = this.cameraHeight;
+                this.camera.position.copy(this.localPlayer.position).add(firstPersonOffset);
+                
+                // Calculate look direction with tilt
+                const lookAtPoint = this.localPlayer.position.clone().add(
+                    this.playerDirection.clone().multiplyScalar(10)
+                );
+                
+                // Apply the downward tilt if you added firstPersonTilt to CONFIG
+                if (CONFIG.firstPersonTilt) {
+                    lookAtPoint.y = this.localPlayer.position.y + this.cameraHeight - 
+                                  (Math.tan(CONFIG.firstPersonTilt) * 10);
+                } else {
+                    lookAtPoint.y = this.localPlayer.position.y + this.cameraHeight;
+                }
+                
+                this.camera.lookAt(lookAtPoint);
+                break;
+                
+            case 2: // Top view
+                this.camera.position.set(
+                    this.localPlayer.position.x,
+                    this.localPlayer.position.y + this.cameraHeight,
+                    this.localPlayer.position.z
+                );
+                this.camera.lookAt(this.localPlayer.position);
+                break;
+        }
+        
+        this.localPlayer.rotation.y = Math.atan2(
+            this.playerDirection.x,
+            this.playerDirection.z
+        );
+        
+        if (moved) {
+            this.updatePlayerTrail();
+        }
+        
+        // Check for nearby images with links
+        this.checkNearbyImages();
+        
+        if (this.localPlayer.position.x < this.worldBounds.minX || 
+            this.localPlayer.position.x > this.worldBounds.maxX ||
+            this.localPlayer.position.z < this.worldBounds.minZ || 
+            this.localPlayer.position.z > this.worldBounds.maxZ) {
+            
+            const respawnPos = this.getRandomSpawnPosition();
+            this.localPlayer.position.set(respawnPos.x, respawnPos.y, respawnPos.z);
+        }
+    };
+}
+
+
+
+		checkNearbyImages() {
+		    if (!this.localPlayer || !this.imageMeshes.length) return;
+		    
+		    // Remove existing sprites and reset highlighting
+		    if (this.titleSprite) {
+			this.scene.remove(this.titleSprite);
+			this.titleSprite = null;
+		    }
+		    
+		    if (this.linkSprite) {
+			this.scene.remove(this.linkSprite);
+			this.linkSprite = null;
+		    }
+		    
+		    if (this.currentHighlightedImage && this.currentHighlightedImage.material) {
+			this.currentHighlightedImage.material.color.set(CONFIG.currentHighlightedColor);
+		    }
+		    
+		    // Find nearest image
+		    let nearestImage = null;
+		    let nearestDistance = CONFIG.imageProximity;
+		    
+		    for (const imageMesh of this.imageMeshes) {
+			if (!imageMesh.parent) continue;
+			
+			const distance = this.localPlayer.position.distanceTo(imageMesh.parent.position);
+			if (distance < nearestDistance) {
+			    nearestDistance = distance;
+			    nearestImage = imageMesh;
+			}
+		    }
+		    
+		    // Update UI elements
+		    const preview = document.getElementById('image-preview');
+		    const title = document.getElementById('preview-title');
+		    const image = document.getElementById('preview-image');
+		    const link = document.getElementById('preview-link');
+		    const content = document.getElementById('default-content');
+		    
+		    if (nearestImage && nearestImage.userData.link) {
+			// Highlight image
+		        nearestImage.material.color.set(new THREE.Color(CONFIG.imageHighlightColor));
+		        this.currentHighlightedImage = nearestImage;
+			
+			// Create sprites
+			const titleText = nearestImage.userData.name || "Image";
+			this.titleSprite = this.createSpriteText(titleText, CONFIG.imageTitleColor);
+			this.titleSprite.position.copy(nearestImage.parent.position);
+			this.titleSprite.position.y += CONFIG.spriteTitleOffsetY;
+			this.scene.add(this.titleSprite);
+			
+			const linkText = nearestImage.userData.link.split('/').pop();
+			this.linkSprite = this.createSpriteText(linkText, CONFIG.imageLinkColor);
+			this.linkSprite.position.copy(nearestImage.parent.position);
+			this.linkSprite.position.y += CONFIG.spriteLinkOffsetY;
+			this.scene.add(this.linkSprite);
+			
+			// Update sidebar
+			title.textContent = titleText;
+			link.textContent = nearestImage.userData.link;
+			
+			try {
+			    if (nearestImage.material && nearestImage.material.map) {
+				image.src = nearestImage.material.map.image.src;
+			    }
+			} catch(e) {
+			    // Handle missing texture
+			}
+			
+			// Show relevant elements
+			title.style.display = 'block';
+			image.style.display = 'block';
+			link.style.display = 'block';
+			content.style.display = 'none';
+			preview.style.display = 'block';
+			
+			this.currentLink = nearestImage.userData.link;
+		
+
+                       document.getElementById('pdf-viewer').style.display = 'none';
+
+	
+		    } else {
+		    
+
+		title.style.display = 'none';
+		image.style.display = 'none';
+		link.style.display = 'none';
+		// Hide PDF viewers
+		document.getElementById('pdf-viewer').style.display = 'none';
+		document.getElementById('pdf-iframe').style.display = 'none'; // Hide iframe too if you added it
+		content.style.display = 'block';
+		preview.style.display = 'block';
+
+		this.currentLink = null;
+
+
+
+		    }
+		    
+		    // Update renderer size
+		    this.onWindowResize();
+		}
+
+
+
+
+
+
+
+
+
+            updatePlayerTrail() {
+                this.trail.frameCounter++;
+                
+                if (this.trail.frameCounter % CONFIG.trailInterval === 0) {
+                    this.trail.points.push(new THREE.Vector3(
+                        this.localPlayer.position.x,
+                        this.localPlayer.position.y + 0.1,
+                        this.localPlayer.position.z
+                    ));
+                }
+
+                if (this.trail.points.length > CONFIG.maxTrailPoints) {
+                    this.trail.points.shift();
+                }
+
+                if (this.trail.pointsObject) {
+                    this.scene.remove(this.trail.pointsObject);
+                }
+
+                const trailGeometry = new THREE.BufferGeometry().setFromPoints(this.trail.points);
+                const pointsObject = new THREE.Points(trailGeometry, this.trail.material);
+                this.scene.add(pointsObject);
+                
+                this.trail.pointsObject = pointsObject;
+            }
+
+		onWindowResize() {
+			    const gameContainer = document.getElementById('game-container');
+			    const imagePreview = document.getElementById('image-preview');
+			    
+			    if (imagePreview.style.display === 'block') {
+				this.camera.aspect = (window.innerWidth * 0.7) / window.innerHeight;
+			    } else {
+				this.camera.aspect = window.innerWidth / window.innerHeight;
+			    }
+			    
+			    this.camera.updateProjectionMatrix();
+			    this.renderer.setSize(gameContainer.clientWidth, window.innerHeight);
+			} 
+
+            animate = () => {
+                requestAnimationFrame(this.animate);
+                
+                //this.stats.begin();
+                //this.statsMemory.update();
+                
+                const delta = this.clock.getDelta();
+                
+                if (this.mixer) {
+                    this.mixer.update(delta);
+                }
+                
+                this.moveHandler();
+                
+                this.renderer.render(this.scene, this.camera);
+                
+                //this.stats.end();
+            }
+        }
+
+        const game = new SingleplayerGame();
+    </script>
+
+
+</body>
+</html>
